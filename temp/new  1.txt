@@ -1,0 +1,358 @@
+UBUNTU SETUP
+____________________________________________________________
+
+# Basic  setup
+aptitude update
+aptitude safe-upgrade
+aptitude install htop
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+
+#edit the hostname
+//Here you need add your hostname, for example vxtindia.com
+vi /etc/hostname
+
+
+
+# add admin user
+adduser admin
+visudo
+//You need to add the following here
+//%admin ALL=(ALL) ALL
+
+# add other users
+adduser admin2
+usermod -a G admin admin2
+adduser deploy
+adduser deploy2
+usermod -a -G deploy deploy2
+//It's also a good idea to add this for each user
+vi .bashrc
+//and the add the following at the end of the file
+- PS1='\[\033[0;35m\]\u@\h\[\033[0;33m\] \w\[\033[00m\]: '
+
+
+IPTABLES INSTALLATION
+__________________________________________________________
+
+#Flush the tables
+iptables -F
+
+# edit the rules
+vi /etc/iptables.up.rules
+//*filter
+ 
+//# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+//-A INPUT -i lo -j ACCEPT
+//-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+ 
+//# Accepts all established inbound connections
+//-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+ 
+//# Accept SSH traffic
+-A INPUT iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+ 
+ 
+ 
+//# Allows all outbound traffic
+//# You can modify this to only allow certain traffic
+//-A OUTPUT -j ACCEPT
+ 
+//# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
+//-A INPUT -p tcp --dport 80 -j ACCEPT
+//-A INPUT -p tcp --dport 443 -j ACCEPT
+ 
+//# Allows SSH connections
+//#
+//# THE -dport NUMBER IS THE SAME ONE YOU SET UP IN THE SSHD_CONFIG FILE
+//#
+//-A INPUT -p tcp -m state --state NEW --dport 8888 -j ACCEPT
+ 
+//# Allow ping
+//-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+ 
+//# log iptables denied calls
+//-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+ 
+//# Reject all other inbound - default deny unless explicitly allowed policy
+//-A INPUT -j REJECT
+//-A FORWARD -j REJECT
+ 
+//COMMIT
+
+# Update the rules
+iptables-restore < /etc/iptables.up.rules
+
+# Make sure the rules are updated on startup
+vi /etc/network/if-pre-up.d/iptables
+Add this to the file
+#!/bin/sh
+/sbin/iptables-restore < /etc/iptables.up.rules
+
+# edit permissions
+chmod +x /etc/network/if-pre-up.d/iptables
+
+#restart
+/etc/init.d/ssh restart
+
+
+FAIL2BAN INSTALLATION
+__________________________________________________________
+
+#install require packages
+aptitude install fail2ban
+
+# create local rule file
+cd /etc/fail2ban/
+cp jail.conf jail.local
+
+#configure
+vi jail.local
+//Add this
+//destemail = someaddress@vxtindia.com
+//mta = mail
+
+#restart
+service fail2ban restart
+
+
+SSH INSTALLATION
+__________________________________________________________
+
+# Edit the config file
+vi /etc/ssh/sshd_config
+//Once inside, make sure that the following values match
+//Port 8888
+//Protocol 2
+//UseDNS no
+
+# Reload the ssh configs
+//Once you're done run the command below
+/etc/init.d/ssh reload
+
+
+
+
+
+
+GIT INSTALLATION
+__________________________________________________________
+
+# install the packages
+aptitude install git-core
+
+
+
+
+
+
+
+
+
+
+
+Setup a virual server
+____________________________________________________________
+
+# Create a virtual
+cd /etc/apache2/sites-available
+sudo cp default moodlevirtualhost
+
+# Enter the settings
+cat sitename <<< 
+<VirtualHost *:80>
+ServerAdmin webmaster@mymoodleserver.dyndns.org
+#
+DocumentRoot /usr/share/moodle/
+ServerName mymoodleserver.dyndns.org
+ServerAlias www.mymoodleserver.dyndns.org mymoodleserver.dyndns.org
+#RewriteEngine On
+#RewriteOptions inherit
+</VirtualHost>
+>>>
+
+#link the virtual host
+sudo ln -s /etc/apache2/sites-available/moodlevirtualhost /etc/apache2/sites-enabled
+sudo /etc/init.d/apache2 restart
+
+
+
+
+MYSQL INSTALLATION
+____________________________________________________________
+
+#install the required packages
+sudo apt-get install mysql-server php5-mysql
+
+#Set the root password (no space between password and p)
+mysqladmin -u root password NewRootDatabasePassword
+mysqladmin -u root -h localhost password NewRootDatabasePassword -pNewRootDatabasePassword
+
+
+
+
+POSTGRESQL INSTALLATION
+____________________________________________________________
+
+#install the required packages
+sudo apt-get install postgresql-8.1 php5-pgsql
+
+#create a user
+sudo -u postgres createuser -D -A -P moodleuser
+sudo -u postgres psql template1
+# ALTER USER postgres WITH PASSWORD 'NewAdminDatabasePassword';
+# \q
+sudo nano /etc/postgresql/8.1/main/pg_hba.conf
+
+#create a database
+sudo -u postgres createdb -E utf8 -O moodleuser moodle
+
+#restart the database
+sudo /etc/init.d/postgresql-8.1 restart
+
+
+
+APACHE INSTALLATION
+____________________________________________________________
+
+#install required packages
+sudo apt-get install apache2 
+sudo apt-get install libapache2-mod-security 
+
+#edit the config file
+vi /etc/apache2/apache2.conf
+//Once inside, make sure the following values are set
+//KeepAliveTimeout 5
+//Timeout 30
+//MaxKeepAliveRequests 400
+
+#edit the servername
+vi /etc/apache2/conf.d/servername.conf
+//Set the following here
+//ServerName vxtindia.com
+
+#edit the security
+vi /etc/apache2/conf.d/security
+//Set the following here
+//ServerTokens Minimal
+//ServerSignature Off
+
+
+# restart apache
+sudo /etc/init.d/apache2 restart
+apache2ctl restart
+ 
+
+MYSQL INSTALLATION
+____________________________________________________________
+aptitude install mysql-server mysql-client
+
+mysql_secure_installation
+
+
+
+PHP INSTALLATION
+____________________________________________________________
+
+aptitude install php5 php5-json php5-cli php5-mysql php5-dev php5-curl php5-gd php5-imagick php5-mcrypt php5-memcache php5-mhash php5-pspell php5-snmp php5-sqlite php5-xmlrpc php5-xsl libapache2-mod-php5 php5-gd php5-ldap php5-odbc
+
+
+POSTFIX INSTALLATION
+____________________________________________________________
+
+# install required packages
+aptitude install postfix telnet mailutils
+//Set/Choose the following options here
+//Internet Site
+//System Mail Name = vxtindia.com
+//Note: postfix log files are at /var/log/mail.info, /var/log/mail.warn, /var/log/mail.err, /var/log/mail.log
+//Note: postfix config files are at /etc/postfix
+
+#configure
+vi /etc/postfix/main.cf
+//Set the hostname here
+//myhostname = vxtindia.com
+
+# configure
+vi /etc/mailname
+//Set it again here
+//vxtindia.com
+
+# Restart
+postfix reload
+
+#something
+vi /etc/aliases
+//Note: save it to external email where server can report abuse
+//postmaster: abuse@vxtindia-external.com
+//Note: Change reverse DNS by going to https://www.linode.com/members/linode/rdns.cfm
+//vxtindia.com
+
+
+MUNIN INSTALLATION
+____________________________________________________________
+
+#INSTALL required packages
+aptitude install munin munin-node
+
+# configure
+vi /etc/munin/munin.conf
+//It should like the following
+//dbdir /var/lib/munin
+//htmldir /var/cache/munin/www
+//logdir /var/log/munin
+//rundir /var/run/munin
+//contact.vxtindia.command mail -s "Munin notification" server@vxtindia.com
+//[vxtindia.com]
+//    address 127.0.0.1
+//    use_node_name yes
+
+# edit permissions
+chown -R munin /var/cache/munin/www/
+
+#configure
+vi /etc/munin/munin-node.conf
+//Set the following
+//host 127.0.0.1
+
+#restart
+service munin-node restart
+//Note: You can also use /etc/init.d/munin-node restart
+
+#Create apache directoruy
+vi /etc/apache2/sites-enabled/000-default
+//Here you set the following
+//Alias /munin /var/cache/munin/www
+//<Directory /var/cache/munin/www>
+//    Options FollowSymLinks
+//    AllowOverride AuthConfig
+//    Order allow,deny
+//    Allow from all
+//</Directory>
+
+#restart apache
+apache2ctl restart
+
+# Create a htaccess file
+vi /var/cache/munin/www/.htaccess
+//Make sure the following are there
+//AuthUserFile /var/cache/munin/.htpasswd
+//AuthGroupFile /dev/null
+//AuthName "Munin"
+//AuthType Basic
+ 
+//<Limit GET>
+//    require valid-user
+//</Limit>
+
+# edit stuff
+cd /var/cache/munin
+htpasswd -c .htpasswd admin
+
+#install master plugins
+aptitude install libwww-perl
+munin-node-configure --suggest
+ln -s /usr/share/munin/plugins/apache_accesses /etc/munin/plugins/apache_accesses
+ln -s /usr/share/munin/plugins/apache_processes /etc/munin/plugins/apache_processes
+ln -s /usr/share/munin/plugins/apache_volume /etc/munin/plugins/apache_volume
+ln -s /usr/share/munin/plugins/ip_ /etc/munin/plugins/ip_
