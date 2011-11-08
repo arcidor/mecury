@@ -52,7 +52,7 @@ function installation_timezone_update {
 	ln -sf /usr/share/zoneinfo/$setting_location /etc/localtime
 }
 
-function installation_motd_update {
+function installation_motd_clear {
 	cat /dev/null > /etc/motd
 }
 
@@ -450,26 +450,29 @@ function firewall_configure {
 	# Accepts all established inbound connections
 	/sbin/iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 	
-	# Allows all outbound traffic
+	# Allow all outbound traffic
 	/sbin/iptables -A OUTPUT -j ACCEPT
 
-	# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
-	/sbin/iptables -A INPUT -p tcp --dport 80 -j ACCEPT
-	/sbin/iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+	# Allow SSH traffic
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_ssh -j ACCEPT
+	
+	# Allow HTTP and HTTPS connections from anywhere (the normal ports for websites)
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_http -j ACCEPT
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_https -j ACCEPT
 
-	# Allows SMTP, POP, and IMAP connections from anywhere (the normal ports for mail)
-	/sbin/iptables -A INPUT -p tcp --dport 25 -j ACCEPT
-	/sbin/iptables -A INPUT -p tcp --dport 143 -j ACCEPT
-	/sbin/iptables -A INPUT -p tcp --dport 110 -j ACCEPT
+	# Allow SMTP, POP, and IMAP connections from anywhere (the normal ports for mail)
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_smtp -j ACCEPT
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_pop -j ACCEPT
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_imap -j ACCEPT
 	
 	# Allow connection to MySQL
-	/sbin/iptables -A INPUT -p tcp --dport 3306 -j ACCEPT
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_mysql -j ACCEPT
 	
-	# Allows DNS from anywhere (the normal ports for nameserver)
-	/sbin/iptables -A INPUT -p tcp --dport 53 -j ACCEPT
+	# Allow DNS from anywhere (the normal ports for nameserver)
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_dns -j ACCEPT
 
 	# Allows FTP connections from anywhere (the normal ports for ftp)
-	/sbin/iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_ftp -j ACCEPT
 
 	# Allow ping
 	# /sbin/iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
@@ -487,12 +490,12 @@ function firewall_finish {
 	/sbin/iptables-save > /sbin/iptables-rules
 	
 	# Create a bash file that imports the firewall rules into iptables
-	echo '#!/bin/bash'  > $/etc/network/if-up.d/iptables
-	echo "/sbin/iptables-restore < /sbin/iptables-rules" >> $/etc/network/if-up.d/iptables
+	echo '#!/bin/bash'  > /etc/network/if-up.d/iptables
+	echo "/sbin/iptables-restore < /sbin/iptables-rules" >> /etc/network/if-up.d/iptables
 	
 	# Create a bash file that exports the firewall rules from iptables
-	echo '#!/bin/bash'  > $/etc/network/if-down.d/iptables
-	echo "/sbin/iptables-save > /sbin/iptables-rules" >> $/etc/network/if-down.d/iptables
+	echo '#!/bin/bash'  > /etc/network/if-down.d/iptables
+	echo "/sbin/iptables-save > /sbin/iptables-rules" >> /etc/network/if-down.d/iptables
 }
 
 ########################################
