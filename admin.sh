@@ -203,7 +203,11 @@ function apache_create_domain {
 	ServerAlias *.$1
 	
 	DocumentRoot /srv/www/$1/public/
-
+	CustomLog /srv/www/$1/logs/access.log combined
+	ErrorLog /srv/www/$1/logs/error.log
+	
+	LogLevel warn
+	
 	# SSLEngine on
 	# SSLOptions +StrictRequire
 	# SSLCertificateFile /etc/ssl/certs/server.crt
@@ -215,11 +219,6 @@ function apache_create_domain {
 		Order allow,deny
 		allow from all
 	</Directory>
-	
-	CustomLog /srv/www/$1/logs/access.log combined
-	ErrorLog /srv/www/$1/logs/error.log
-	
-	LogLevel warn
 
 </VirtualHost>
 EOF
@@ -304,11 +303,17 @@ EOF
 	
 }
 
-
+function server_apache_reload {
+	/etc/init.d/apache2 reload
+}
 
 ################################################################################
 # 11. Databases
 ################################################################################
+
+########################################
+# 11.1 MySQL
+########################################
 
 function mysql_check_database {
 	mysqlcheck -p -u root virtual
@@ -320,6 +325,30 @@ function mysql_repair {
 
 function mysql_backup {
 	mysqldump -p -u root –opt virtual > /backup/virtual-2010-10-24
+}
+
+########################################
+# 11.2 PostgreSQL
+########################################
+
+# $1 = username
+function postgres_create_user {
+	su - postgres
+	createuser $1 --pwprompt
+}
+
+# $1 = username
+function postgres_delete_user {
+	su - postgres
+	dropuser $1
+}
+
+# $1 = username, $2 = databaseName
+function postgres_grant_privileges {
+	su - postgres
+	createdb $2
+	psql $2
+	GRANT ALL PRIVILEGES ON DATABASE $2 to $1;
 }
 
 ################################################################################
