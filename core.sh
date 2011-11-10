@@ -128,7 +128,7 @@ function package_management_aptitude_install {
 function package_management_essentials_install {
 	# Install essential software
 	aptitude -y update
-	aptitude -y install build-essential curl dnsutils htop iotop less screen unzip vim
+	aptitude -y install build-essential curl dnsutils htop iotop less libssl-dev libreadline5-dev screen unzip vim wget zlib1g-dev
 }
 
 function package_management_notifications_configure {
@@ -624,7 +624,7 @@ EOF
 function apache_install {
 	# Check for any updated packages and install apache2
 	aptitude -y update
-	aptitude -y install apache2 ssl libapache2-mod-security
+	aptitude -y install apache2 apache2-doc apache2-utils ssl libapache2-mod-security
 }
 
 function apache_configure {
@@ -833,7 +833,13 @@ function postgresql_install {
 
 	# Check for any updated packages and install postgresql
 	aptitude -y update
-	aptitude -y install postgresql
+	aptitude -y install postgresql postgresql-contrib
+	
+	# Set the password for the default postgres user
+	passwd postgres $setting_postgres_password
+	
+	# Alter the password for the postgres user within the database
+	psql -d template1 -c "ALTER USER postgres WITH PASSWORD '$setting_postgres_password';"
 	
 }
 
