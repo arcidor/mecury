@@ -1,48 +1,52 @@
 --------------------------------------------------------------------------------
-Ubuntu Setup Script
-www.arcidor.com
+Ubuntu Setup Scripts
 --------------------------------------------------------------------------------
+
+Version
 
 I. Description
 
 	A shell script, used to install and configure various applications and
-	settings on a freshly installed server.
+	settings on a freshly installed Ubuntu server.
 
-	The script has five main sections:
+	The script has three sections:
 
-	1. 	Setup the base installation (core system, ssh, firewall, security)
-	2. 	Install system specific applications (apache, mysql, php, etc.)
-	3. 	Create a backup scheme and clean the system
+	1.	Settings are used to customise the installation/administration process
+	2.	Core functions are used to install various parts of the server
+	3.	Admin function are used post-installation for maintenance
 	
+	The setting file and core file are combined to provided installation script
+	functionality.
 	
 II. File list
 
-	1. 	setting.sh: user configurable, customises the installation process
-	2. 	core.sh: 	configuration functions for the installation
-	3. 	install.sh: main executable, references all other files
-	
+	1. 	setting.sh: user configurable, customises the installation/adminstration funtions
+	2. 	core.sh: installation functions for the build
+	3. 	admin.sh: admin functions for after the build
 
 III. Compatibility
 
-	This tool has been configured under the following systems:
+	This tool has been configured and tested on the following systems:
 	
-	1.	Ubuntu 11.04 (natty)
+	1.	Ubuntu 11.10
 
 IV. Usage
 
 	1. 	Download the latest version of the script:
 
-			git://arcidor.com/ubuntu
+			git://github.com/arcidor/mecury.git
 
 	2. 	Navigate to the script directory
 	
 	3.	Configure the setting.sh file
 	
-	4.	Ensure that the install script is executable:
+	4.	Customise the install script (install.sh)
+	
+	5.	Ensure that the install script is executable:
 	
 			chmod 700 install.sh
 			
-	5.	Run the script
+	6.	Run the script
 	
 			./install.sh
 
