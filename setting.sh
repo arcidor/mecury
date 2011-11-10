@@ -58,6 +58,9 @@ setting_domain_owner="www-data"			# Server owner
 setting_mysql_password="pass"			# Password for the MySQL root user
 setting_mysql_memory_limit="64"			# Memory limit for MySQL processes
 
+# Postgres
+setting_postgres_password="pass"		# Password for the Postgres root user
+
 ################################################################################
 # System alias
 ################################################################################
