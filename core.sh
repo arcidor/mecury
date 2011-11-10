@@ -277,7 +277,7 @@ PermitRootLogin no
 PermitTunnel no
 PermitUserEnvironment no
 # PidFile 
-Port $setting_ssh_port 
+Port $setting_port_ssh
 PrintLastLog no
 PrintMotd no
 Protocol 2
