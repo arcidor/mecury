@@ -567,11 +567,12 @@ function fail2ban_install {
 	# Install fail2ban
 	aptitude -y install fail2ban
 
-	# Make a copy of the settinguration file
+	# Make a copy of the configuration file
 	sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 	
 	# Make changes to the setting file
 	sed -i 's/^destemail.*/destemail = $setting_admin_email Prod/' /etc/fail2ban/jail.conf
+	sed -i 's/^mta.*/mta = mail/' /etc/fail2ban/jail.conf
 	
 	service fail2ban restart
 }
@@ -634,13 +635,13 @@ EOF
 function apache_install {
 	# Check for any updated packages and install apache2
 	aptitude -y update
-	aptitude -y install apache2 ssl
+	aptitude -y install apache2 ssl libapache2-mod-security
 }
 
 function apache_configure {
 	# Edit apache2.conf
 	cp /etc/apache2/{apache2.conf,apache2.conf.backup}
-	sed -i "s/^Timeout.*$/Timeout 45/" /etc/apache2/apache2.conf
+	sed -i "s/^Timeout.*$/Timeout 30/" /etc/apache2/apache2.conf
 	sed -i "s/^KeepAliveTimeout.*$/KeepAliveTimeout 5/g" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*StartServers\)\s*[0-9]*/\1         1/" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*MaxClients\)\s*[0-9]*/\1           45/" /etc/apache2/apache2.conf
@@ -649,7 +650,10 @@ function apache_configure {
 	sed -i "s/\(^\s*ThreadLimit\)\s*[0-9]*/\1          15/" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*ThreadsPerChild\)\s*[0-9]*/\1      15/" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*MaxRequestsPerChild\)\s*[0-9]*/\1  5000/" /etc/apache2/apache2.conf
-	# Replace ServerName <server name>
+	sed -i "s/\(^\s*//MaxKeepAliveRequests\)\s*[0-9]*/\1  400/" /etc/apache2/apache2.conf
+	
+	# Replace the server name
+	sed -i "s/^ServerName.*/ServerName $setting_domain/" /etc/apache2/conf.d/servername.conf
 
 	# Remove Apache server information from headers. 
 	sed -i "s/^ServerTokens.*/ServerTokens Prod/" /etc/apache2/conf.d/security
@@ -713,7 +717,7 @@ function apache_restart {
 function php_install {
 	# Check for any updated packages and install php
 	aptitude -y update
-	aptitude -y install php5 libapache2-mod-php5 php5-mysql php5-cli php5-pgsql
+	aptitude -y install php5 php5-json php5-cli php5-mysql php5-dev php5-curl php5-gd php5-imagick php5-mcrypt php5-memcache php5-mhash php5-pspell php5-snmp php5-sqlite php5-xmlrpc php5-xsl libapache2-mod-php5 php5-gd php5-ldap php5-odbc php5-pgsql
 }
 
 function php_configure {
@@ -808,6 +812,10 @@ function mysql_install {
 	aptitude -y update
 	aptitude -y install mysql-server
 
+	# Set the root password for the installation
+	mysqladmin -u root password $setting_mysql_password
+	mysqladmin -u root -h localhost password $setting_mysql_password -p$setting_mysql_password
+
 }
 
 function mysql_configure {
@@ -837,7 +845,7 @@ function postgresql_install {
 	# Check for any updated packages and install postgresql
 	aptitude -y update
 	aptitude -y install postgresql
-
+	
 }
 
 ################################################################################
@@ -904,18 +912,24 @@ function postfix_install_send_only {
 
 	# Install postfix
 	echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
-	echo "postfix postfix/mailname string $setting_hostname" | debconf-set-selections
+	echo "postfix postfix/mailname string $setting_domain" | debconf-set-selections
 	echo "postfix postfix/destinations string localhost.localdomain, localhost" | debconf-set-selections
-	aptitude -y install postfix
+	aptitude -y install postfix telnet mailutils
 
 	/usr/sbin/postconf -e "inet_interfaces = loopback-only"
 	/usr/sbin/postconf -e "local_transport = error:local delivery is disabled"
 
+	# Configure the hostname
+	sed -i "s/^myhostname .*$/myhostname = $setting_domain/" /etc/postfix/main.cf
+
+	# Put the domain the mail name
+	cat > /etc/mailname << EOF
+	$setting_domain
+EOF
+	
+	
 	# Ensure postfix will start at boot
 	/usr/sbin/update-rc.d postfix defaults
-
-	# Install mailutils to be able to send using the mail command
-	aptitude -y install mailutils
 
 	# Restart to apply changes
 	/etc/init.d/postfix start
