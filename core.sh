@@ -20,24 +20,13 @@
 # but are not mentioned in the official guide.
 #
 # To make use of this script, please consult the README file provided.
+#
+# It is assumed that the Ubuntu Server has already been installed with the 
+# basic setup.
 
 ################################################################################
 # 2. Installation
 ################################################################################
-
-# It is assumed that the Ubuntu Server has already been installed with the 
-# basic setup. This guide does not deal with system partitioning, however
-# the following schema can be used as a reference (using a 20 GB system).
-#
-# / 	  ext3    509MB  28%
-# /usr 	  ext3    7.9GB  83%
-# /home   ext3    5.0GB  63%
-# /opt 	  ext3   1011MB  51%
-# /boot	  ext2     51MB  36%
-# /var 	  ext3    2.0GB  32%
-# swap            516MB   2%
-# /tmp    ext3	    2GB
-
 
 function installation_upgrade_release {
 	apt-get dist-upgrade
