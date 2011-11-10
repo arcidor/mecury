@@ -58,3 +58,13 @@ setting_domain_owner="www-data"			# Server owner
 # MySQL
 setting_mysql_password="pass"			# Password for the MySQL root user
 setting_mysql_memory_limit="64"			# Memory limit for MySQL processes
+
+################################################################################
+# System alias
+################################################################################
+
+alias free="free -m"
+alias update="sudo aptitude update"
+alias install="sudo aptitude install"
+alias upgrade="sudo aptitude safe-upgrade"
+alias remove="sudo aptitude remove"
