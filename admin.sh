@@ -2,12 +2,24 @@
 # 2. System Info
 ################################################################################
 
-function number_of_processors {
+# Displays the number of processors used by the system
+function system_processors_count {
 	cat /proc/cpuinfo | grep -c processor
 }
 
+# Displays the current memory usage in MB
 function system_memory_check {
 	free -m
+}
+
+# Displays how much memory current processes are using (sorted largest-smallest)
+function system_current_usage {
+	ps -eo pmem,pcpu,rss,vsize,args | sort -k 1 -r
+}
+
+# Displays current IO activity
+function system_io_activity {
+	iostat -d -x 2 5
 }
 
 ################################################################################
@@ -241,16 +253,7 @@ function apache_ssl_enable {
 
 }
 
-
-
-
-
 function server_apache_configure_domain {
-
-	
-	
-	
-
 
 	# Create the required directory structure
 	mkdir -p /srv/www/$domain/private
