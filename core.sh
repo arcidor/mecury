@@ -30,6 +30,7 @@
 
 function installation_upgrade_release {
 	apt-get dist-upgrade
+	#do-release-upgrade
 }
 
 function installation_locale_update {
@@ -179,6 +180,10 @@ function networking_ntp_install {
 # 5. Remote Administration
 ################################################################################
 
+########################################
+# SSH
+########################################
+
 function remote_admin_create_base_access {
 	# If an alternative admin group has been specified, create it and give the group admin privileges
 	if [[ "$setting_group_admin" != "admin" ]]; then
@@ -321,6 +326,8 @@ EOF
 function remote_admin_ssh_restart {
 	service ssh restart
 }
+
+
 
 ################################################################################
 # 6. Network Authentication
