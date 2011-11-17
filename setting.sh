@@ -19,7 +19,7 @@ setting_group_sftp="sftp"				# Login group, grants access via SFTP
 ################################################################################
 
 setting_region="gb"						# Country closest to server
-setting_release="natty"					# Distro release version
+setting_release="oneiric "				# Distro release version
 setting_locale="en_GB.utf8"				# Locale for the system
 setting_location="UTC"					# Timezone
 
