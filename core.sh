@@ -327,7 +327,13 @@ function remote_admin_ssh_restart {
 	service ssh restart
 }
 
+########################################
+# SSH
+########################################
 
+function remote_install_puppet {
+	# ToDo
+}
 
 ################################################################################
 # 6. Network Authentication
@@ -399,6 +405,11 @@ function user_management_lock_system_users {
 ########################################
 # Console Security
 ########################################
+
+function security_console_disable_reboot {
+	
+	sed -i "s/^exec shutdown -r now "Control-Alt-Delete pressed.*/\#exec shutdown -r now "Control-Alt-Delete pressed/" /etc/init/control-alt-delete.conf
+}
 
 function console_services_disable {
 	# Disable services for users who do not require them

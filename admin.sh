@@ -160,6 +160,9 @@ function sum_user_delete {
 # $1=username
 function user_lock {
 	sudo passwd -l $1
+}
+
+function user_unlock {
 	sudo passwd -u $1
 }
 
@@ -173,14 +176,9 @@ function group_delete {
 	sudo delgroup $1
 }
 
-function password_check_crackable {
-	# This function will check to see if any password are crackable by various
-	# software applications available.
-	
-	# John  the Ripper, L0phtCrack, Crack
-	
-	# Copy the /etc/passwd and /etc/shadow
-	# run program off the production server
+# $1 = username
+function user_account_status {
+	sudo chage -l $1
 }
 
 function password_check_empty {
