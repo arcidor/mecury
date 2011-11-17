@@ -50,6 +50,12 @@ function pm_installed_files {
 	dpkg -L $1
 }
 
+# Check which package installed a file
+# $1 = file
+function pm_file_associated {
+	dpkg -S $1
+}
+
 function pm_installed_recently {
 	zcat -f /var/log/dpkg.log* | grep "\ install\ " | sort
 }
