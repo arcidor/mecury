@@ -22,6 +22,16 @@ function system_io_activity {
 	iostat -d -x 2 5
 }
 
+# Reports information about processes, memory, paging, block IO, traps, and cpu activity.
+function system_overall_activity {
+	vmstat 3
+}
+
+# Reports on how long the server has been running
+function system_uptime {
+	uptime
+}
+
 ################################################################################
 # 3. Package Management
 ################################################################################
@@ -174,6 +184,13 @@ function password_check_empty {
 function find_unowned_files {
 	find / -xdev \( -nouser -o -nogroup \) -print
 }
+
+# Displays information about the users currently on the machine, and their processes.
+# $1 = username
+function user_current_activity {
+	w $1
+}
+
 
 ################################################################################
 # 9. Monitoring
