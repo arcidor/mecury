@@ -831,16 +831,22 @@ function mysql_configure {
 	
 	# Secure MySQL
 	mysql_secure_installation
-	
-	# Configure core settings
-	#sed -i 's/[mysqld]/[mysqld]\ndefault-storage-engine=InnoDB/' /etc/mysql/my.cnf
-		
+			
 }
 
 function mysql_restart {
 	
 	service mysql restart
 	
+}
+
+function mysql_enable_external_access {
+	# Uncomment the bind address property to allow external access to the database
+	sed -i "s/^#bind-address.*$/bind-address/" /etc/mysql/my.cnf
+}
+
+function mysql_enable_innodb {
+	sed -i 's/[mysqld]/[mysqld]\ndefault-storage-engine=InnoDB/' /etc/mysql/my.cnf
 }
 
 ########################################
