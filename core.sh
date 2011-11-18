@@ -509,7 +509,11 @@ function firewall_finish {
 # AppArmor
 ########################################
 
-# Place holder
+function apparmor_install {
+	
+	aptitude -y install
+
+}
 
 ########################################
 # Certificates
