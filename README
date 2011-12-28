@@ -20,9 +20,10 @@ I. Description
 	
 II. File list
 
-	1. 	setting.sh: user configurable, customises the installation/adminstration funtions
+	1. 	setting.sh: customises the installation/adminstration funtions (user configurable)
 	2. 	core.sh: installation functions for the build
 	3. 	admin.sh: admin functions for after the build
+	4.	install.sh: installation script that uses setting.sh and core.sh (user configurable)
 
 III. Compatibility
 
