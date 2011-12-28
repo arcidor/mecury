@@ -5,7 +5,7 @@
 ################################################################################
 
 # Administrator
-setting_admin="administrator"			# Name of the administrative user
+setting_admin=administrator			# Name of the administrative user
 setting_admin_password="pass"			# Password for the administrative user
 setting_admin_email="admin@email.com"	# Email for the administrative user
 
