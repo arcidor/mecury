@@ -1,6 +1,15 @@
 #!/bin/bash
 
 ################################################################################
+# Server Properties
+################################################################################
+
+setting_locale="en_ZA.utf8"				# Locale for the system
+setting_location="UTC"					# Timezone
+setting_region="za"						# Country closest to server
+setting_release="oneiric"				# Distro release version
+
+################################################################################
 # Server Access
 ################################################################################
 
@@ -13,15 +22,6 @@ setting_admin_email="admin@email.com"	# Email for the administrative user
 setting_group_admin="admin"				# Admin group, grants sudo privileges
 setting_group_ssh="ssh"					# Login group, access via SSH
 setting_group_sftp="sftp"				# Login group, grants access via SFTP
-
-################################################################################
-# Server Properties
-################################################################################
-
-setting_region="gb"						# Country closest to server
-setting_release="oneiric "				# Distro release version
-setting_locale="en_GB.utf8"				# Locale for the system
-setting_location="UTC"					# Timezone
 
 ################################################################################
 # Server Ports
@@ -60,12 +60,3 @@ setting_mysql_memory_limit="64"			# Memory limit for MySQL processes
 
 # Postgres
 setting_postgres_password="pass"		# Password for the Postgres root user
-
-################################################################################
-# System alias
-################################################################################
-
-alias update="sudo aptitude update"
-alias install="sudo aptitude install"
-alias upgrade="sudo aptitude safe-upgrade"
-alias remove="sudo aptitude remove"
