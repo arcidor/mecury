@@ -24,5 +24,12 @@ source ./core.sh
 #package_management_source_update
 #package_management_aptitude_install
 #package_management_aptitude_update
-package_management_notifications_install
+#package_management_notifications_install
 #package_management_essentials_install
+
+################################################################################
+# Network Configuration
+################################################################################
+
+#networking_hostname_update
+networking_ntp_install
