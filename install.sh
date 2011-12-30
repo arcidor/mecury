@@ -15,6 +15,8 @@ source ./core.sh
 #installation_locale_update
 #installation_timezone_update
 #installation_motd_clear
+#installation_admin_group_create
+#installation_admin_user_create
 
 ################################################################################
 # Package Management Configuration
@@ -32,4 +34,14 @@ source ./core.sh
 ################################################################################
 
 #networking_hostname_update
-networking_ntp_install
+#networking_ntp_install
+
+################################################################################
+# SSH Configuration
+################################################################################
+
+#remote_admin_ssh_install
+#remote_admin_ssh_configure
+#remote_admin_ssh_banner_update
+#remote_admin_ssh_configure_sftp
+#remote_admin_ssh_restart
