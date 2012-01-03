@@ -51,9 +51,12 @@ IV. Usage
 	
 			./install.sh
 
-V. Known Issues
+V. Notes
 
-	None
+	Sections listed in the script as "not implemented" or "placeholder", are
+	not required for a normal Ubuntu server installation. These sections may
+	be updated in the future, however there is no timeline if place for
+	the relevant funtionality.
 
 VI. licensing
 
