@@ -2,67 +2,65 @@
 Ubuntu Setup Scripts
 --------------------------------------------------------------------------------
 
-Version
-
-I. Description
+- Description
 
 	A shell script, used to install and configure various applications and
 	settings on a freshly installed Ubuntu server.
 
 	The script has three sections:
 
-	1.	Settings are used to customise the installation/administration process
-	2.	Core functions are used to install various parts of the server
-	3.	Admin function are used post-installation for maintenance
+	-	Settings are used to customise the installation/administration process
+	-	Core functions are used to install various parts of the server
+	-	Admin function are used post-installation for maintenance
 	
 	The setting file and core file are combined to provided installation script
 	functionality.
 	
-II. File list
+- File list
 
-	1. 	setting.sh: customises the installation/adminstration funtions (user configurable)
-	2. 	core.sh: installation functions for the build
-	3. 	admin.sh: admin functions for after the build
-	4.	install.sh: installation script that uses setting.sh and core.sh (user configurable)
+	-	setting.sh: customises the installation/adminstration funtions (user configurable)
+	- 	core.sh: installation functions for the build
+	- 	admin.sh: admin functions for after the build
+	-	install.sh: installation script that uses setting.sh and core.sh (user configurable)
 
-III. Compatibility
+- Compatibility
 
 	This tool has been configured and tested on the following systems:
 	
-	1.	Ubuntu 11.10
+	-	Ubuntu 11.10
 
-IV. Usage
+- Usage
 
-	1. 	Download the latest version of the script:
+	- 	Download the latest version of the script:
 
 			git://github.com/arcidor/mecury.git
 
-	2. 	Navigate to the script directory
+	- 	Navigate to the script directory
 	
-	3.	Configure the setting.sh file
+	-	Configure the setting.sh file
 	
-	4.	Customise the install script (install.sh)
+	-	Customise the install script (install.sh)
 	
-	5.	Ensure that the install script is executable:
+	-	Ensure that the install script is executable:
 	
 			chmod 700 install.sh
 			
-	6.	Run the script
+	-	Run the script
 	
 			./install.sh
 
-V. Notes
+- Notes
 
 	Sections listed in the script as "not implemented" or "placeholder", are
 	not required for a normal Ubuntu server installation. These sections may
 	be updated in the future, however there is no timeline if place for
 	the relevant funtionality.
 
-VI. licensing
+- Licensing
 
 	...
 	
-VII. Additional Resources
+- Additional Resources
 
 	-	Ubuntu server guide
 		https://help.ubuntu.com/11.04/serverguide/C/index.html
