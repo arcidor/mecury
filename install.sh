@@ -53,7 +53,7 @@ source ./core.sh
 # Not implemented
 
 ################################################################################
-# Authentication
+# Authentication Configuration
 ################################################################################
 
 # Not implemented
@@ -70,4 +70,12 @@ source ./core.sh
 
 #user_management_adduser_configure
 #user_management_password_expirations
-user_management_users_cleanup
+
+#security_console_disable_reboot
+
+#firewall_backup
+#firewall_configure
+#firewall_finish
+
+#chkrootkit_install
+rkhunter_install
