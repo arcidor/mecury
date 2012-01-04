@@ -15,7 +15,6 @@ setting_release="oneiric"				# Distro release version
 
 # Administrator
 setting_admin="administrator"			# Name of the administrative user
-setting_admin_password="pass"			# Password for the administrative user
 setting_admin_email="admin@email.com"	# Email for the administrative user
 
 # Groups
@@ -53,10 +52,3 @@ setting_interal_ip="192.168.163.176"	# Local IP
 
 # Apache
 setting_domain_owner="www-data"			# Server owner
-
-# MySQL
-setting_mysql_password="pass"			# Password for the MySQL root user
-setting_mysql_memory_limit="64"			# Memory limit for MySQL processes
-
-# Postgres
-setting_postgres_password="pass"		# Password for the Postgres root user
