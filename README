@@ -4,25 +4,29 @@ Ubuntu Setup Scripts
 
 - Description
 
-	A shell script, used to install and configure various applications and
-	settings on a freshly installed Ubuntu server.
+	A shell script, used to install and configure various settings and 
+	applications on a freshly installed Ubuntu web server.
 
 	The script has three sections:
 
-	-	Settings are used to customise the installation/administration process
-	-	Core functions are used to install various parts of the server
-	-	Admin function are used post-installation for maintenance
-	
-	The setting file and core file are combined to provided installation script
-	functionality.
+	-	Settings: used to customise the installation/administration process
+	-	Core functions: used to install various parts of the server
+	-	Admin function: used post-installation for maintenance
 	
 - File list
 
-	-	setting.sh: customises the installation/adminstration funtions (user configurable)
+	-	config.sh: customises the installation funtions (user configurable)
+	-	settings.sh: customises the administration functions (user configurable)
 	- 	core.sh: installation functions for the build
+	-	install.sh: installation script that uses config.sh and core.sh (user configurable)
 	- 	admin.sh: admin functions for after the build
-	-	install.sh: installation script that uses setting.sh and core.sh (user configurable)
 
+	The config file and install file are combined to provide the installation script
+	with the required functionality.
+	
+	The setting file and admin file are combined  to provide administration script
+	functionality.
+	
 - Compatibility
 
 	This tool has been configured and tested on the following systems:
@@ -33,11 +37,11 @@ Ubuntu Setup Scripts
 
 	- 	Download the latest version of the script:
 
-			git://github.com/arcidor/mecury.git
+			https://github.com/arcidor/mecury
 
 	- 	Navigate to the script directory
 	
-	-	Configure the setting.sh file
+	-	Configure the config.sh file
 	
 	-	Customise the install script (install.sh)
 	
@@ -51,10 +55,12 @@ Ubuntu Setup Scripts
 
 - Notes
 
+	This script should be run under the root user (or equivalent).
+
 	Sections listed in the script as "not implemented" or "placeholder", are
-	not required for a normal Ubuntu server installation. These sections may
-	be updated in the future, however there is no timeline if place for
-	the relevant funtionality.
+	not required for a normal Ubuntu web server installation. These sections 
+	may be updated in the future, however there is no timeline in place for
+	the relevant functionality.
 
 - Licensing
 
