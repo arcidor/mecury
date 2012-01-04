@@ -47,6 +47,10 @@ function installation_timezone_update {
 function installation_motd_clear {
 	# Clear the message of the day file
 	cat /dev/null > /etc/motd
+	
+	# Rmove the PAM message of the day modules
+	rm -R /etc/update-motd.d/
+	mkdir /etc/update-motd.d/
 }
 
 function installation_admin_group_create {
@@ -510,3 +514,550 @@ EOF
 	# Apply the correct permissions to the file
 	chmod 700 /etc/cron.daily/rkhunter.sh
 }
+
+########################################
+# Logwatch
+########################################
+
+function logwatch_install {
+	# Install logwatch
+	aptitude -y install logwatch
+
+	# Create the logwatch daily script file
+	cat >> /etc/cron.daily/logwatch.sh <<EOF
+#!/bin/sh
+(
+	logwatch
+) | /bin/mail -s 'Logwatch Output:' $setting_admin_email
+EOF
+	
+	# Apply the correct permissions to the file
+	chmod 700 /etc/cron.daily/logwatch.sh
+}
+
+########################################
+# Fail2Ban
+########################################
+
+function fail2ban_install {
+	# Install fail2ban
+	aptitude -y install fail2ban
+
+	# Make a copy of the configuration file
+	sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+	
+	# Make changes to the setting file
+	sed -i 's/^destemail.*/destemail = $setting_admin_email Prod/' /etc/fail2ban/jail.conf
+	sed -i 's/^mta.*/mta = mail/' /etc/fail2ban/jail.conf
+	
+	# Restart the service
+	service fail2ban restart
+}
+
+########################################
+# Logcheck
+########################################
+
+function logcheck_install {
+	# Install logcheck
+	aptitude -y install logcheck logcheck-database
+}
+
+########################################
+# Denyhosts
+########################################
+
+function denyhosts_install {
+	# Install denyhosts
+	aptitude -y install denyhosts
+}
+
+########################################
+# Misc
+########################################
+
+function security_alert_root {
+	# Mail the relevant account when someone logs into the root account
+	cat >> /root/.bashrc <<EOF
+#!/bin/sh
+(
+	echo 'ALERT - Root Shell Access on:' `date` `who`
+) | /bin/mail -s "Alert: Root Login from `who | awk '{print $6}'`" $setting_admin_email
+EOF
+}
+
+################################################################################
+# 9. Monitoring
+################################################################################
+
+########################################
+# 9.1 Nagios
+########################################
+
+# Place holder
+
+########################################
+# 9.2 Munin
+########################################
+
+# Place holder
+
+################################################################################
+# 10. Web Servers
+################################################################################
+
+########################################
+# 10.1 Apache Web Server
+########################################
+
+function apache_install {
+	# Check for any updated packages and install apache2
+	aptitude -y install apache2 apache2-doc apache2-utils libapache2-mod-security
+}
+
+function apache_configure_settings {
+	# Backup and configure apache2.conf
+	cp /etc/apache2/{apache2.conf,apache2.conf.backup}
+	sed -i "s/^Timeout.*$/Timeout 30/" /etc/apache2/apache2.conf
+	sed -i "s/^KeepAliveTimeout.*$/KeepAliveTimeout 5/g" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*MaxKeepAliveRequests\)\s*[0-9]*/\1  400/" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*MinSpareThreads\)\s*[0-9]*/\1      2/" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*MaxSpareThreads\)\s*[0-9]*/\1      5/" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*ThreadLimit\)\s*[0-9]*/\1          15/" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*ThreadsPerChild\)\s*[0-9]*/\1      15/" /etc/apache2/apache2.conf	
+	sed -i "s/\(^\s*StartServers\)\s*[0-9]*/\1         1/" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*MaxClients\)\s*[0-9]*/\1           45/" /etc/apache2/apache2.conf
+	sed -i "s/\(^\s*MaxRequestsPerChild\)\s*[0-9]*/\1  5000/" /etc/apache2/apache2.conf
+	
+	# Backup and configure servername.conf
+	cp /etc/apache2/conf.d/{servername.conf,servername.conf.backup}
+	sed -i "s/^ServerName.*/ServerName $setting_domain/" /etc/apache2/conf.d/servername.conf
+
+	# Remove Apache server information from headers. 
+	cp /etc/apache2/conf.d/{security,security.backup}
+	sed -i "s/^ServerTokens.*/ServerTokens Prod/" /etc/apache2/conf.d/security
+	sed -i "s/^ServerSignature.*/ServerSignature Off/" /etc/apache2/conf.d/security
+
+	# Edit Ports.conf
+	cp /etc/apache2/{ports.conf,ports.conf.backup}
+	sed -i "s/^NameVirtualHost.*/NameVirtualHost $setting_ip:80/" /etc/apache2/ports.conf
+	
+	# Edit default virtual host
+	sed -i "s/^<VirtualHost.*/<VirtualHost $setting_ip:80>/" /etc/apache2/sites-available/default
+}
+
+function apache_configure_modules {
+	# Enable apache modules
+	a2enmod actions
+	a2enmod ssl
+	a2enmod rewrite
+	a2enmod suexec
+	a2enmod include
+		
+	# Disable apache modules
+	a2dismod php4
+	a2dismod status
+	a2dismod autoindex
+	a2dismod cgi
+	
+	# Disable default site
+	a2dissite 000-default
+}
+
+function apache_restart {
+	service apache2 restart
+}
+
+########################################
+# 10.2 PHP5 - Scripting Language
+########################################
+
+function php_install {
+	# Check for any updated packages and install php
+	aptitude -y install php5 php5-json php5-cli php5-mysql php5-dev php5-curl php5-gd php5-imagick php5-mcrypt php5-memcache php5-mhash php5-pspell php5-snmp php5-sqlite php5-xmlrpc php5-xsl libapache2-mod-php5 php5-gd php5-ldap php5-odbc php5-pgsql php5-cli php5-suhosin libapache2-mod-php5 php5-common
+}
+
+function php_configure {
+	# Edit php.ini
+	sed -i "s/^short_open_tag.*$/short_open_tag = Off/" /etc/php5/apache2/php.ini
+	sed -i "s/^disable_functions.*$/disable_functions = _getppid,diskfreespace,dl,escapeshellarg,escapeshellcmd,exec,fpaththru,getmypid,getmyuid,highlight_file,ignore_user_abord,leak,link,listen,passthru,pcntl_alarm,pcntl_exec,pcntl_fork,pcntl_get_last_error,pcntl_getpriority,pcntl_setpriority,pcntl_signal,pcntl_signal_dispatch,pcntl_sigprocmask,pcntl_sigtimedwait,pcntl_sigwaitinfo,pcntl_strerror,pcntl_wait,pcntl_waitpid,pcntl_wexitstatus,pcntl_wifexited,pcntl_wifsignaled,pcntl_wifstopped,pcntl_wstopsig,pcntl_wtermsig,php_uname,phpinfo,popen,posix,posix_ctermid,posix_getcwd,posix_getegid,posix_geteuid,posix_getgid,posix_getgrgid,posix_getgrnam,posix_getgroups,posix_getlogin,posix_getpgid,posix_getpgrp,posix_getpid,posix_getpwnam,posix_getpwuid,posix_getrlimit,posix_getsid,posix_getuid,posix_isatty,posix_kill,posix_mkfifo,posix_setegid,posix_seteuid,posix_setgid,posix_setpgid,posix_setsid,posix_setuid,posix_times,posix_ttyname,posix_uname,proc_close,proc_get_status,proc_nice,proc_open,proc_terminate,set_time_limit,shell_exec,show_source,source,system,tmpfile,virtual/" /etc/php5/apache2/php.ini
+	sed -i "s/^expose_php.*$/expose_php = Off/" /etc/php5/apache2/php.ini
+	sed -i 's/^max_execution_time.*$/max_execution_time = 1120/' /etc/php5/apache2/php.ini	
+	sed -i 's/^max_input_time.*$/max_input_time = 1300/' /etc/php5/apache2/php.ini
+	sed -i "s/^display_errors.*$/display_errors = Off/" /etc/php5/apache2/php.ini
+	sed -i "s/^log_errors.*$/log_errors = On/" /etc/php5/apache2/php.ini
+	sed -i "s/^;error_log.*$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini
+	sed -i "s/^memory_limit.*$/memory_limit = $setting_mysql_memory_limitM/" /etc/php5/apache2/php.ini
+	sed -i 's/^post_max_size.*$/post_max_size = 125M/' /etc/php5/apache2/php.ini	
+	sed -i 's/^upload_max_filesize.*$/upload_max_filesize = 125M/' /etc/php5/apache2/php.ini
+	sed -i 's/^register_globals.*$/register_globals = Off/' /etc/php5/apache2/php.ini
+	sed -i 's/^allow_url_fopen.*$/allow_url_fopen = Off/' /etc/php5/apache2/php.ini
+	sed -i 's/^enable_dl.*$/enable_dl = Off/' /etc/php5/apache2/php.ini
+}
+
+########################################
+# 10.3 Squid - Proxy Server
+########################################
+
+# Placeholder
+
+########################################
+# 10.4 Ruby on Rails
+########################################
+
+function ruby_on_rails_install {
+	# Check for any updated packages and install rails
+	aptitude -y install rails
+}
+
+########################################
+# 10.5 Apache Tomcat
+########################################
+
+function tomcat_install {
+	# Check for any updated packages and install tomcat
+	aptitude -y install tomcat6
+}
+
+########################################
+# 10.6 GlassFish
+########################################
+
+function java_install {
+	# Provide the parameters required for the installation
+	echo "sun-java6-jdk shared/accepted-sun-dlj-v1-1 select true" | /usr/bin/debconf-set-selections
+	echo "sun-java6-jre shared/accepted-sun-dlj-v1-1 select true" | /usr/bin/debconf-set-selections
+
+	aptitude -y install python-software-properties
+	add-apt-repository ppa:ferramroberto/java	
+	aptitude update
+	aptitude -y install sun-java6-jdk sun-java6-jre
+	
+	#echo "JAVA_HOME=\"/usr/lib/jvm/java-6-sun\"" > /etc/environment
+	#echo "PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/lib/jvm/java-6-sun/bin" >> /etc/environment
+}
+
+################################################################################
+# 11. Databases
+################################################################################
+
+########################################
+# 11.1 MySQL
+########################################
+
+function mysql_install {
+	# Set the password for the MySQL installation
+	echo "mysql-server-5.1 mysql-server/root_password password $setting_mysql_root_password" | debconf-set-selections
+	echo "mysql-server-5.1 mysql-server/root_password_again password $setting_mysql_root_password" | debconf-set-selections
+	
+	# Check for any updated packages and install mysql
+	aptitude -y install mysql-server
+	
+	# Set the root password for the installation
+	mysqladmin -u root password $setting_mysql_password
+	mysqladmin -u root -h localhost password $setting_mysql_password -p$setting_mysql_password
+}
+
+function mysql_configure {
+	# Allow for external access to the database
+	sed -i "s/^#bind-address.*$/bind-address = $setting_ip/" /etc/mysql/my.cnf
+	
+	# Enable the InnoDB engine
+	sed -i 's/[mysqld]/[mysqld]\ndefault-storage-engine=InnoDB/' /etc/mysql/my.cnf
+	
+	# Secure MySQL
+	mysql_secure_installation
+}
+
+function mysql_restart {
+	# Restart the service
+	service mysql restart	
+}
+
+########################################
+# 11.2 PostgreSQL
+########################################
+
+function postgresql_install {
+	# Check for any updated packages and install postgresql
+	aptitude -y install postgresql postgresql-contrib
+	
+	# Set the password for the default postgres user
+	passwd postgres $setting_postgres_password
+	
+	# Alter the password for the postgres user within the database
+	psql -d template1 -c "ALTER USER postgres WITH PASSWORD '$setting_postgres_password';"
+}
+
+################################################################################
+# 12. LAMP Applications
+################################################################################
+
+########################################
+# Moin Moin
+########################################
+
+# Place holder
+
+########################################
+# MediaWiki
+########################################
+
+# Place holder
+
+########################################
+# phpMyAdmin
+########################################
+
+# Place holder
+
+################################################################################
+# 13. File Servers
+################################################################################
+
+########################################
+# FTP Server
+########################################
+
+# Place holder
+
+########################################
+# Network File System
+########################################
+
+# Placeholder
+
+########################################
+# CUPS - Print Server
+########################################
+
+# Placeholder
+
+################################################################################
+# 14. Email Services
+################################################################################
+
+########################################
+# Postfix
+########################################
+
+function postfix_install_send_only {
+	# Install postfix
+	echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
+	echo "postfix postfix/mailname string $setting_domain" | debconf-set-selections
+	echo "postfix postfix/destinations string localhost.localdomain, localhost" | debconf-set-selections
+	aptitude -y install postfix telnet mailutils
+
+	/usr/sbin/postconf -e "inet_interfaces = loopback-only"
+	/usr/sbin/postconf -e "local_transport = error:local delivery is disabled"
+
+	# Configure the hostname
+	sed -i "s/^myhostname .*$/myhostname = $setting_domain/" /etc/postfix/main.cf
+
+	# Put the domain the mail name
+	cat > /etc/mailname << EOF
+	$setting_domain
+EOF
+	
+	# Ensure postfix will start at boot
+	/usr/sbin/update-rc.d postfix defaults
+
+	# Restart to apply changes
+	/etc/init.d/postfix start
+}
+
+########################################
+# Exim4
+########################################
+
+# Placeholder
+
+########################################
+# Dovecot Server
+########################################
+
+# Placeholder
+
+########################################
+# Mailman
+########################################
+
+# Placeholder
+
+########################################
+# Mail Filtering
+########################################
+
+# Placeholder
+
+################################################################################
+# 15. Chat Applications
+################################################################################
+
+########################################
+# IRC Server
+########################################
+
+# Placeholder
+
+########################################
+# Jabber Instant Messaging Server
+########################################
+
+# Placeholder
+
+################################################################################
+# 16. Version Control System
+################################################################################
+
+########################################
+# Bazaar
+########################################
+
+# Placeholder
+
+########################################
+# Subversion
+########################################
+
+# Placeholder
+
+########################################
+# CVS Server
+########################################
+
+# Placeholder
+
+########################################
+# Git
+########################################
+
+function git_install {
+	aptitude -y install git-core git-svn
+}
+
+################################################################################
+# 17. Windows Networking
+################################################################################
+
+########################################
+# Samba File Server
+########################################
+
+# Place holder
+
+########################################
+# Samba Print Server
+########################################
+
+# Place holder
+
+########################################
+# Samba Domain Controller
+########################################
+
+# Place holder
+
+########################################
+# Samba Active Directory Integration
+########################################
+
+# Place holder
+
+################################################################################
+# 18. Backups
+################################################################################
+
+########################################
+# Shell Scripts
+########################################
+
+function backup_install {
+	# Create the logwatch daily script file
+	cat >> /etc/cron.daily/backup.sh <<EOF
+#!/bin/sh
+(
+	# What to backup. 
+	backup_files="/home /var/spool/mail /etc /root /boot /opt"
+
+	# Where to backup to.
+	dest="/mnt/backup"
+
+	# Create archive filename.
+	day=$(date +%A)
+	hostname=$(hostname -s)
+	archive_file="$hostname-$day.tgz"
+
+	# Backup the files using tar.
+	tar czf $dest/$archive_file $backup_files
+) | /bin/mail -s 'Logwatch Output:' $setting_admin_email
+EOF
+
+	# Apply the correct permissions to the file
+	chmod 700 /etc/cron.daily/backup.sh
+	
+}
+
+########################################
+# Archive Rotation
+########################################
+
+# Placeholder
+
+########################################
+# Bacula
+########################################
+
+################################################################################
+# 19. Virtualization
+################################################################################
+
+########################################
+# libvirt
+########################################
+
+# Place holder
+
+########################################
+# JeOS and vmbuilder
+########################################
+
+# Place holder
+
+########################################
+# UEC
+########################################
+
+# Place holder
+
+################################################################################
+# 20. Clustering
+################################################################################
+
+########################################
+# DRBD
+########################################
+
+# Place holder
+
+################################################################################
+# 21. VPN
+################################################################################
+
+########################################
+# OpenVPN
+########################################
+
+# Place holder
+
+################################################################################
+# 22. Other Useful Applications
+################################################################################
+
+# Place holder
+
+################################################################################
+# A1. Misc
+################################################################################
+
+# Place holder
