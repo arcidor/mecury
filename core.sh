@@ -87,7 +87,8 @@ function installation_admin_user_create {
 function package_management_source_configure {
 	# Make a backup of the source list
 	cp /etc/apt/{sources.list,sources.list.backup}
-
+	chmod 700 sources.list.backup
+	
 	# Output the updated sources list taking into account the settings file
 	cat > /etc/apt/sources.list <<EOF
 deb http://$setting_region.archive.ubuntu.com/ubuntu/ $setting_release main restricted
@@ -122,9 +123,7 @@ deb-src http://archive.canonical.com/ubuntu $setting_release partner
 deb http://extras.ubuntu.com/ubuntu $setting_release main
 deb-src http://extras.ubuntu.com/ubuntu $setting_release main
 EOF
-}
 
-function package_management_source_update {
 	# Update the package list
 	apt-get -y update
 }
@@ -137,9 +136,9 @@ function package_management_aptitude_install {
 	aptitude -y update
 }
 
-function package_management_aptitude_update {
-	# Update the system via aptitude
-	aptitude -y update
+function package_management_essentials_install {
+	# Install commonly used software
+	aptitude -y install build-essential curl dnsutils expect htop iotop libssl-dev libreadline5-dev lshw screen unzip vim wget zlib1g-dev
 }
 
 function package_management_notifications_install {
@@ -148,14 +147,10 @@ function package_management_notifications_install {
 	
 	# Make a backup of the apticron config file
 	cp /etc/apticron/{apticron.conf,apticron.conf.backup}
+	chmod 700 apticron.conf.backup
 	
 	# Configure for the correct email
 	sed -i "s/^EMAIL=.*/EMAIL=\"$setting_admin_email\"/" /etc/apticron/apticron.conf
-}
-
-function package_management_essentials_install {
-	# Install commonly used software
-	aptitude -y install build-essential curl dnsutils htop iotop libssl-dev libreadline5-dev lshw screen unzip vim wget zlib1g-dev
 }
 
 ################################################################################
@@ -169,6 +164,7 @@ function networking_hostname_update {
 
 	# Backup the DHCP setting file
 	cp /etc/default/{dhcpcd,dhcpcd.backup}
+	chmod 700 dhcpcd.backup
 	
 	# Disable DHCP setting the system hostname
 	sed -i "s/SET_HOSTNAME/#SET_HOSTNAME/" /etc/default/dhcpcd
@@ -176,7 +172,8 @@ function networking_hostname_update {
 	# Set the FQDN
 	cp /etc/{hosts,hosts.backup}
 	sed -i "s/127.0.0.1.*/127.0.0.1       localhost.localdomain   localhost\n$setting_ip       $setting_fqdn   $setting_hostname/" /etc/hosts
-
+	chmod 700 hosts.backup
+	
 	# Restart the service
 	service hostname start
 }
@@ -187,6 +184,7 @@ function networking_ntp_install {
 
  	# Update the configuration file to reflect an addtional time pool
 	cp /etc/{ntp.conf,ntp.conf.backup}
+	chmod 700 ntp.conf.backup
 	sed -i "s/^server ntp.ubuntu.com/server ntp.ubuntu.com\nserver pool.ntp.org/" /etc/ntp.conf
 	
 	# Restart the service
@@ -209,7 +207,7 @@ function remote_admin_ssh_install {
 function remote_admin_ssh_configure {
 	# Backup the SSH configuration file
 	cp /etc/ssh/{sshd_config,sshd_config.backup}
-	chmod a-w /etc/ssh/sshd_config.backup
+	chmod 700 /etc/ssh/sshd_config.backup
 	
 	# Output settings to the daemon configuration file
 	cat > /etc/ssh/sshd_config <<EOF
@@ -288,7 +286,8 @@ EOF
 function remote_admin_ssh_banner_update {
 	# Backup the current message
  	cp /etc/{issue.net,issue.net.backup}
-
+	chmod 700 issue.net.backup
+	
 	# Save the new message
 	cat > /etc/issue.net <<EOF	
 *******************************************************************************
@@ -345,9 +344,6 @@ function remote_admin_ssh_restart {
 ########################################
 
 function user_management_adduser_configure {
-	# Sort users into groups when created
-	sed -i "s/^GROUPHOMES=no/GROUPHOMES=yes/" /etc/adduser.conf
-	
 	# Set the default access to user only
 	sed -i "s/^DIR_MODE.*/DIR_MODE=0700/" /etc/adduser.conf
 }
@@ -375,6 +371,7 @@ function security_console_disable_reboot {
 function firewall_backup {
 	# Make a backup of the current firewall rules
 	/sbin/iptables-save > /sbin/iptables.backup
+	chmod 700 /sbin/iptables.backup
 	
 	# Reset the default policies
 	/sbin/iptables -P INPUT ACCEPT
@@ -443,14 +440,17 @@ function firewall_configure {
 function firewall_finish {
 	# Save the firewall rules
 	/sbin/iptables-save > /sbin/iptables-rules
+	chmod 700 /sbin/iptables-rules
 	
 	# Create a bash file that imports the firewall rules into iptables
 	echo '#!/bin/bash'  > /etc/network/if-up.d/iptables
 	echo "/sbin/iptables-restore < /sbin/iptables-rules" >> /etc/network/if-up.d/iptables
+	chmod 700 /etc/network/if-up.d/iptables
 	
 	# Create a bash file that exports the firewall rules from iptables
 	echo '#!/bin/bash'  > /etc/network/if-down.d/iptables
 	echo "/sbin/iptables-save > /sbin/iptables-rules" >> /etc/network/if-down.d/iptables
+	chmod 700 /etc/network/if-down.d/iptables
 }
 
 ########################################
@@ -547,8 +547,8 @@ function fail2ban_install {
 	sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 	
 	# Make changes to the setting file
-	sed -i 's/^destemail.*/destemail = $setting_admin_email Prod/' /etc/fail2ban/jail.conf
-	sed -i 's/^mta.*/mta = mail/' /etc/fail2ban/jail.conf
+	sed -i "s/^destemail.*/destemail = $setting_admin_email Prod/" /etc/fail2ban/jail.conf
+	sed -i "s/^mta.*/mta = mail/" /etc/fail2ban/jail.conf
 	
 	# Restart the service
 	service fail2ban restart
@@ -558,6 +558,7 @@ function fail2ban_install {
 # Logcheck
 ########################################
 
+
 function logcheck_install {
 	# Install logcheck
 	aptitude -y install logcheck logcheck-database
@@ -566,6 +567,7 @@ function logcheck_install {
 ########################################
 # Denyhosts
 ########################################
+
 
 function denyhosts_install {
 	# Install denyhosts
@@ -577,12 +579,9 @@ function denyhosts_install {
 ########################################
 
 function security_alert_root {
-	# Mail the relevant account when someone logs into the root account
+	# Mail the relevant account when someone logs into the root account	
 	cat >> /root/.bashrc <<EOF
-#!/bin/sh
-(
-	echo 'ALERT - Root Shell Access on:' `date` `who`
-) | /bin/mail -s "Alert: Root Login from `who | awk '{print $6}'`" $setting_admin_email
+echo 'ALERT - Root Shell Access () on:' `date` `who` | mail -s "Alert: Root Access from `who | cut -d"(" -f2 | cut -d")" -f1`" $setting_admin_email
 EOF
 }
 
@@ -618,6 +617,8 @@ function apache_install {
 function apache_configure_settings {
 	# Backup and configure apache2.conf
 	cp /etc/apache2/{apache2.conf,apache2.conf.backup}
+	chmod 700 apache2.conf.backup
+	
 	sed -i "s/^Timeout.*$/Timeout 30/" /etc/apache2/apache2.conf
 	sed -i "s/^KeepAliveTimeout.*$/KeepAliveTimeout 5/g" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*MaxKeepAliveRequests\)\s*[0-9]*/\1  400/" /etc/apache2/apache2.conf
@@ -631,15 +632,18 @@ function apache_configure_settings {
 	
 	# Backup and configure servername.conf
 	cp /etc/apache2/conf.d/{servername.conf,servername.conf.backup}
+	chmod 700 servername.conf.backup
 	sed -i "s/^ServerName.*/ServerName $setting_domain/" /etc/apache2/conf.d/servername.conf
 
 	# Remove Apache server information from headers. 
 	cp /etc/apache2/conf.d/{security,security.backup}
+	chmod 700 security.backup
 	sed -i "s/^ServerTokens.*/ServerTokens Prod/" /etc/apache2/conf.d/security
 	sed -i "s/^ServerSignature.*/ServerSignature Off/" /etc/apache2/conf.d/security
 
 	# Edit Ports.conf
 	cp /etc/apache2/{ports.conf,ports.conf.backup}
+	chmod 700 ports.conf.backup
 	sed -i "s/^NameVirtualHost.*/NameVirtualHost $setting_ip:80/" /etc/apache2/ports.conf
 	
 	# Edit default virtual host
@@ -747,23 +751,19 @@ function java_install {
 
 function mysql_install {
 	# Set the password for the MySQL installation
-	echo "mysql-server-5.1 mysql-server/root_password password $setting_mysql_root_password" | debconf-set-selections
-	echo "mysql-server-5.1 mysql-server/root_password_again password $setting_mysql_root_password" | debconf-set-selections
+	echo "mysql-server-5.1 mysql-server/root_password password $setting_mysql_password" | debconf-set-selections
+	echo "mysql-server-5.1 mysql-server/root_password_again password $setting_mysql_password" | debconf-set-selections
 	
 	# Check for any updated packages and install mysql
 	aptitude -y install mysql-server
-	
-	# Set the root password for the installation
-	mysqladmin -u root password $setting_mysql_password
-	mysqladmin -u root -h localhost password $setting_mysql_password -p$setting_mysql_password
 }
 
 function mysql_configure {
 	# Allow for external access to the database
-	sed -i "s/^#bind-address.*$/bind-address = $setting_ip/" /etc/mysql/my.cnf
+	#sed -i "s/^#bind-address.*$/bind-address = $setting_ip/" /etc/mysql/my.cnf
 	
 	# Enable the InnoDB engine
-	sed -i 's/[mysqld]/[mysqld]\ndefault-storage-engine=InnoDB/' /etc/mysql/my.cnf
+	#sed -i 's/[mysqld]/[mysqld]\ndefault-storage-engine=InnoDB/' /etc/mysql/my.cnf
 	
 	# Secure MySQL
 	mysql_secure_installation
@@ -840,6 +840,7 @@ function postgresql_install {
 ########################################
 # Postfix
 ########################################
+
 
 function postfix_install_send_only {
 	# Install postfix
@@ -995,7 +996,6 @@ EOF
 
 	# Apply the correct permissions to the file
 	chmod 700 /etc/cron.daily/backup.sh
-	
 }
 
 ########################################
