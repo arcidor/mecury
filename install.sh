@@ -1,15 +1,15 @@
 #!/bin/bash
 
 ################################################################################
-# Load Required Files
-################################################################################
-
-source ./setting.sh
+source ./config.sh
 source ./core.sh
+################################################################################
 
 ################################################################################
-# Post Installation Setup
+# Core Configuration
 ################################################################################
+
+## Setup core features of the server
 
 #installation_upgrade_release
 #installation_locale_update
@@ -18,33 +18,23 @@ source ./core.sh
 #installation_admin_group_create
 #installation_admin_user_create
 
-################################################################################
-# Network Configuration
-################################################################################
+## Update the package management system
+
+#package_management_source_configure
+#package_management_aptitude_install
+#package_management_essentials_install
+
+## Apply networking functionality
 
 #networking_hostname_update
 #networking_ntp_install
 
-################################################################################
-# Postfix (Send Only)
-################################################################################
+## Postfix is required for package notification updates (among other updates)
 
-postfix_install_send_only
-
-################################################################################
-# Package Management Configuration
-################################################################################
-
-#package_management_source_configure
-#package_management_source_update
-#package_management_aptitude_install
-#package_management_aptitude_update
+#postfix_install_send_only
 #package_management_notifications_install
-#package_management_essentials_install
 
-################################################################################
-# SSH Configuration
-################################################################################
+## Setup SSH now that the core functionality is setup
 
 #remote_admin_ssh_install
 #remote_admin_ssh_configure
@@ -52,23 +42,27 @@ postfix_install_send_only
 #remote_admin_ssh_configure_sftp
 #remote_admin_ssh_restart
 
-################################################################################
-# Security
-################################################################################
+## Configure the system firewall
+
+#firewall_backup
+#firewall_configure
+#firewall_finish
+
+## Configure user security settings
 
 #user_management_adduser_configure
 #user_management_password_expirations
 #security_console_disable_reboot
-#firewall_backup
-#firewall_configure
-#firewall_finish
+#security_alert_root
+
+## Install various security applications
+
 #chkrootkit_install
 #rkhunter_install
 #logwatch_install
 #fail2ban_install
 #logcheck_install
 #denyhosts_install
-#security_alert_root
 
 ################################################################################
 # MySQL
@@ -82,13 +76,13 @@ postfix_install_send_only
 # PostgreSQL
 ################################################################################
 
-postgresql_install
+#postgresql_install
 
 ################################################################################
 # PHP
 ################################################################################
 
-#php_install
+php_install
 #php_configure
 
 ################################################################################
@@ -119,9 +113,13 @@ postgresql_install
 #java_install
 
 ################################################################################
+# Git
+################################################################################
+
+#git_install
+
+################################################################################
 # Backup
 ################################################################################
 
-
-
-
+#backup_install
