@@ -53,6 +53,15 @@ Ubuntu Setup Scripts
 	
 			./install.sh
 
+- Status
+	
+	To Be Completed:
+	
+	- PostgreSQL hardening
+	- TomCat hardening
+	- Ruby on rails hardening
+	- GlassFish hardening
+	
 - Notes
 
 	This script should be run under the root user (or equivalent).
@@ -115,3 +124,6 @@ Ubuntu Setup Scripts
 		
 	-	Slackware hardening
 		http://transamrit.net/docs/sysHardening/system-hardening-10.2.txt
+		
+	-	What is the easiest way to resolve apt-get BADSIG GPG errors? (Ubuntu Forums)
+		http://askubuntu.com/questions/1877/what-is-the-easiest-way-to-resolve-apt-get-badsig-gpg-errors
