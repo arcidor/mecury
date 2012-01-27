@@ -28,6 +28,12 @@
 # 2. Installation
 ################################################################################
 
+function installation_disable_environment {
+	# Prevent environment sharing as this can cause some issues with locales
+	sed -i "s/^AcceptEnv.*/# AcceptEnv LANG LC_*/" /etc/ssh/sshd_config
+	/etc/init.d/ssh restart
+}
+
 function installation_upgrade_release {
 	# Upgrade to the latest version of Ubuntu
 	do-release-upgrade
@@ -37,6 +43,9 @@ function installation_locale_update {
 	# Enable the locale set in the settings file
 	/usr/sbin/locale-gen $setting_locale
 	/usr/sbin/update-locale LANG=$setting_locale
+	
+	# Update the locale list
+	dpkg-reconfigure locales
 }
 
 function installation_timezone_update {
@@ -53,13 +62,24 @@ function installation_motd_clear {
 	mkdir /etc/update-motd.d/
 }
 
+function installation_admin_skeleton_files {
+	# Move the files to the skeleton directory
+	mv setting.sh /etc/skel/.setting.sh
+	mv admin.sh /etc/skel/.admin.sh
+	
+	# Change the permissions
+	chmod -R 777 /etc/skel
+	
+	# Make sure the files are sourced on login
+	echo "source /etc/skel/.setting.sh" >> /etc/profile
+	echo "source /etc/skel/.admin.sh" >> /etc/profile
+}
+
 function installation_admin_group_create {
-	# If an alternative admin group has been specified, create it and give the group admin privileges
-	if [[ "$setting_group_admin" != "admin" ]]; then
-		
-		# Create an admin group
-		groupadd $setting_group_admin
-		
+	# Create an admin group
+	groupadd $setting_group_admin
+	
+	if [[ "$setting_group_admin" != "admin" ]]; then	
 		# Give sudo permission to the admin group
 		cp /etc/{sudoers,sudoers.tmp}
 		chmod 0640 /etc/sudoers.tmp
@@ -67,7 +87,6 @@ function installation_admin_group_create {
 		echo "%$setting_group_admin ALL=(ALL) ALL" >> /etc/sudoers.tmp
 		chmod 0440 /etc/sudoers.tmp
 		mv /etc/sudoers.tmp /etc/sudoers
-		
 	fi
 }
 
@@ -75,9 +94,9 @@ function installation_admin_user_create {
 	# Create the admin user and change the account password
 	adduser --ingroup $setting_group_admin --shell /bin/bash --disabled-password --gecos "Administrator,,," $setting_admin
 	echo "$setting_admin:$setting_admin_password" | chpasswd
-
-	# Set the password expiry to 90 days and the warning to 14 days
-	chage -M 90 -W 14 $setting_admin
+	
+	# Add the admin user to the ssh group for ssh access
+	usermod -a -G $setting_group_ssh $setting_admin
 }
 
 ################################################################################
@@ -85,10 +104,6 @@ function installation_admin_user_create {
 ################################################################################
 
 function package_management_source_configure {
-	# Make a backup of the source list
-	cp /etc/apt/{sources.list,sources.list.backup}
-	chmod 700 sources.list.backup
-	
 	# Output the updated sources list taking into account the settings file
 	cat > /etc/apt/sources.list <<EOF
 deb http://$setting_region.archive.ubuntu.com/ubuntu/ $setting_release main restricted
@@ -124,6 +139,9 @@ deb http://extras.ubuntu.com/ubuntu $setting_release main
 deb-src http://extras.ubuntu.com/ubuntu $setting_release main
 EOF
 
+	# Add the key for the extras package list to prevent the GPG error from displaying
+	apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 16126D3A3E5C1192
+
 	# Update the package list
 	apt-get -y update
 }
@@ -138,16 +156,12 @@ function package_management_aptitude_install {
 
 function package_management_essentials_install {
 	# Install commonly used software
-	aptitude -y install build-essential curl dnsutils expect htop iotop libssl-dev libreadline5-dev lshw screen unzip vim wget zlib1g-dev
+	aptitude -y install build-essential curl expect htop iotop libssl-dev lshw screen unzip vim wget zlib1g-dev
 }
 
 function package_management_notifications_install {
 	# Install apticron
 	aptitude -y install apticron
-	
-	# Make a backup of the apticron config file
-	cp /etc/apticron/{apticron.conf,apticron.conf.backup}
-	chmod 700 apticron.conf.backup
 	
 	# Configure for the correct email
 	sed -i "s/^EMAIL=.*/EMAIL=\"$setting_admin_email\"/" /etc/apticron/apticron.conf
@@ -162,17 +176,8 @@ function networking_hostname_update {
 	echo $setting_hostname > /etc/hostname
     hostname -F /etc/hostname
 
-	# Backup the DHCP setting file
-	cp /etc/default/{dhcpcd,dhcpcd.backup}
-	chmod 700 dhcpcd.backup
-	
-	# Disable DHCP setting the system hostname
-	sed -i "s/SET_HOSTNAME/#SET_HOSTNAME/" /etc/default/dhcpcd
-
 	# Set the FQDN
-	cp /etc/{hosts,hosts.backup}
 	sed -i "s/127.0.0.1.*/127.0.0.1       localhost.localdomain   localhost\n$setting_ip       $setting_fqdn   $setting_hostname/" /etc/hosts
-	chmod 700 hosts.backup
 	
 	# Restart the service
 	service hostname start
@@ -183,8 +188,6 @@ function networking_ntp_install {
 	aptitude -y install ntp
 
  	# Update the configuration file to reflect an addtional time pool
-	cp /etc/{ntp.conf,ntp.conf.backup}
-	chmod 700 ntp.conf.backup
 	sed -i "s/^server ntp.ubuntu.com/server ntp.ubuntu.com\nserver pool.ntp.org/" /etc/ntp.conf
 	
 	# Restart the service
@@ -205,26 +208,19 @@ function remote_admin_ssh_install {
 }
 
 function remote_admin_ssh_configure {
-	# Backup the SSH configuration file
-	cp /etc/ssh/{sshd_config,sshd_config.backup}
-	chmod 700 /etc/ssh/sshd_config.backup
-	
 	# Output settings to the daemon configuration file
 	cat > /etc/ssh/sshd_config <<EOF
-AcceptEnv LANG LC_*
-AddressFamily any
-AllowAgentForwarding no
+# AcceptEnv LANG LC_*
+AllowAgentForwarding yes
 AllowGroups $setting_group_ssh
-AllowTcpForwarding no
+AllowTcpForwarding yes
 # AllowUsers
 # AuthorizedKeysFile	%h/.ssh/authorized_keys
 Banner /etc/issue.net
 ChallengeResponseAuthentication no
+Compression yes
 # ChrootDirectory
 # Ciphers
-ClientAliveCountMax 3
-ClientAliveInterval 600
-Compression yes
 # DenyGroups
 # DenyUsers
 # ForceCommand
@@ -233,8 +229,7 @@ GatewayPorts no
 # GSSAPICleanupCredentials yes
 # GSSAPIKeyExchange no
 # GSSAPIStrictAcceptorCheck no
-# HostbasedAuthentication no
-HostbasedUsesNameFromPacketOnly
+HostbasedAuthentication no
 HostKey /etc/ssh/ssh_host_dsa_key
 HostKey /etc/ssh/ssh_host_ecdsa_key
 HostKey /etc/ssh/ssh_host_rsa_key
@@ -249,15 +244,13 @@ KeyRegenerationInterval 3600
 # ListenAddress 0.0.0.0
 LoginGraceTime 30
 LogLevel INFO
-MaxAuthTries 5
-MaxSessions 5
 # MaxStartups 10:30:60
 PasswordAuthentication yes
 PermitBlacklistedKeys no
 PermitEmptyPasswords no
 # PermitOpen 
 PermitRootLogin no
-PermitTunnel no
+PermitTunnel yes
 PermitUserEnvironment no
 # PidFile 
 Port $setting_port_ssh
@@ -267,27 +260,23 @@ Protocol 2
 PubkeyAuthentication yes
 RhostsRSAAuthentication no
 RSAAuthentication yes
-ServerKeyBits 1024
+ServerKeyBits 768
 StrictModes yes
-Subsystem sftp internal-sftp
+Subsystem sftp /usr/lib/openssh/sftp-server
 SyslogFacility AUTH
 TCPKeepAlive yes
-UseDNS no
 # UseLogin no
+UseDNS no
 UsePAM yes
 UsePrivilegeSeparation yes
-# X11DisplayOffset 10
-X11Forwarding no
+X11DisplayOffset 10
+X11Forwarding yes
 # X11UseLocalhost 
 # XAuthLocation
 EOF
 }
 
 function remote_admin_ssh_banner_update {
-	# Backup the current message
- 	cp /etc/{issue.net,issue.net.backup}
-	chmod 700 issue.net.backup
-	
 	# Save the new message
 	cat > /etc/issue.net <<EOF	
 *******************************************************************************
@@ -311,10 +300,6 @@ EOF
 	
 	# Add the sftp group to the system	
 	groupadd $setting_group_sftp
-}
-
-function remote_admin_ssh_restart {
-	service ssh restart
 }
 
 ########################################
@@ -353,6 +338,10 @@ function user_management_password_expirations {
 	sed -i "s/^PASS_MAX_DAYS.*/PASS_MAX_DAYS 60/" /etc/login.defs
 	sed -i "s/^PASS_MIN_DAYS.*/PASS_MIN_DAYS 7/" /etc/login.defs
 	sed -i "s/^PASS_WARN_AGE.*/PASS_WARN_AGE 7/" /etc/login.defs
+
+	# Log various user actions
+	sed -i "s/^LOG_OK_LOGINS.*/LOG_OK_LOGINS yes/" /etc/login.defs
+	sed -i "s/^#SULOG_FILE.*/SULOG_FILE \/var\/log\/sulog/" /etc/login.defs
 }
 
 ########################################
@@ -423,8 +412,12 @@ function firewall_configure {
 	# Allow DNS from anywhere (the normal ports for nameserver)
 	/sbin/iptables -A INPUT -p tcp --dport $setting_port_dns -j ACCEPT
 
+	# Allow access to the glassfish ports
+	/sbin/iptables -A INPUT -p tcp --dport $setting_port_glassfish -j ACCEPT
+	#/sbin/iptables -A INPUT -p tcp --dport $setting_port_glassfish_admin -j ACCEPT
+
 	# Allows FTP connections from anywhere (the normal ports for ftp)
-	/sbin/iptables -A INPUT -p tcp --dport $setting_port_ftp -j ACCEPT
+	# /sbin/iptables -A INPUT -p tcp --dport $setting_port_ftp -j ACCEPT
 
 	# Allow ping
 	# /sbin/iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
@@ -442,14 +435,22 @@ function firewall_finish {
 	/sbin/iptables-save > /sbin/iptables-rules
 	chmod 700 /sbin/iptables-rules
 	
-	# Create a bash file that imports the firewall rules into iptables
-	echo '#!/bin/bash'  > /etc/network/if-up.d/iptables
-	echo "/sbin/iptables-restore < /sbin/iptables-rules" >> /etc/network/if-up.d/iptables
-	chmod 700 /etc/network/if-up.d/iptables
+	# Create a bash file that imports the firewall rules from iptables
+	cat >> /etc/network/if-up.d/iptables <<EOF
+#!/bin/bash
+/sbin/iptables-restore < /sbin/iptables-rules
+EOF
 	
-	# Create a bash file that exports the firewall rules from iptables
-	echo '#!/bin/bash'  > /etc/network/if-down.d/iptables
-	echo "/sbin/iptables-save > /sbin/iptables-rules" >> /etc/network/if-down.d/iptables
+	# Make it executable
+	chmod 700 /etc/network/if-up.d/iptables
+
+	# Create a bash file that imports the firewall rules from iptables
+	cat >> /etc/network/if-down.d/iptables <<EOF
+#!/bin/bash
+/sbin/iptables-save > /sbin/iptables-rules
+EOF
+
+	# Make it executable
 	chmod 700 /etc/network/if-down.d/iptables
 }
 
@@ -483,12 +484,12 @@ function chkrootkit_install {
 	cat >> /etc/cron.daily/chkrootkit.sh <<EOF
 #!/bin/sh
 (
-/usr/local/chkrootkit/chkrootkit
-) | /bin/mail -s 'Chkrootkit Output:' $setting_admin_email
+chkrootkit
+) | mail -s 'Chkrootkit Output:' $setting_admin_email
 EOF
 
 	# Apply the correct permissions to the file
-	chmod 700 /etc/cron.daily/chkrootkit.sh
+	chmod 755 /etc/cron.daily/chkrootkit.sh
 }
 
 ########################################
@@ -506,13 +507,13 @@ function rkhunter_install {
 	cat >> /etc/cron.daily/rkhunter.sh <<EOF
 #!/bin/sh
 (
-	/usr/bin/rkhunter --update
-	/usr/bin/rkhunter --cronjob --report-warnings-only
-) | /bin/mail -s 'RKHunter Output:' $setting_admin_email
+	rkhunter --update
+	rkhunter --cronjob --report-warnings-only
+) | mail -s 'RKHunter Output:' $setting_admin_email
 EOF
 	
 	# Apply the correct permissions to the file
-	chmod 700 /etc/cron.daily/rkhunter.sh
+	chmod 755 /etc/cron.daily/rkhunter.sh
 }
 
 ########################################
@@ -528,11 +529,11 @@ function logwatch_install {
 #!/bin/sh
 (
 	logwatch
-) | /bin/mail -s 'Logwatch Output:' $setting_admin_email
+) | mail -s 'Logwatch Output:' $setting_admin_email
 EOF
 	
 	# Apply the correct permissions to the file
-	chmod 700 /etc/cron.daily/logwatch.sh
+	chmod 755 /etc/cron.daily/logwatch.sh
 }
 
 ########################################
@@ -543,11 +544,8 @@ function fail2ban_install {
 	# Install fail2ban
 	aptitude -y install fail2ban
 
-	# Make a copy of the configuration file
-	sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-	
 	# Make changes to the setting file
-	sed -i "s/^destemail.*/destemail = $setting_admin_email Prod/" /etc/fail2ban/jail.conf
+	sed -i "s/^destemail.*/destemail = $setting_admin_email/" /etc/fail2ban/jail.conf
 	sed -i "s/^mta.*/mta = mail/" /etc/fail2ban/jail.conf
 	
 	# Restart the service
@@ -558,31 +556,27 @@ function fail2ban_install {
 # Logcheck
 ########################################
 
-
 function logcheck_install {
 	# Install logcheck
 	aptitude -y install logcheck logcheck-database
+	
+	# Configure the mail settings
+	sed -i "s/^SENDMAILTO=.*/SENDMAILTO=\"$setting_admin_email\"/" /etc/logcheck/logcheck.conf
 }
 
 ########################################
 # Denyhosts
 ########################################
 
-
 function denyhosts_install {
 	# Install denyhosts
 	aptitude -y install denyhosts
-}
-
-########################################
-# Misc
-########################################
-
-function security_alert_root {
-	# Mail the relevant account when someone logs into the root account	
-	cat >> /root/.bashrc <<EOF
-echo 'ALERT - Root Shell Access () on:' `date` `who` | mail -s "Alert: Root Access from `who | cut -d"(" -f2 | cut -d")" -f1`" $setting_admin_email
-EOF
+	
+	# Configure the thresholds for denying
+	sed -i "s/^DENY_THRESHOLD_ROOT =.*/DENY_THRESHOLD_ROOT = 5/" /etc/denyhosts.conf 
+	
+	# Setup admin emailing
+	sed -i "s/^ADMIN_EMAIL =.*/ADMIN_EMAIL = $setting_admin_email/" /etc/denyhosts.conf 
 }
 
 ################################################################################
@@ -611,14 +605,11 @@ EOF
 
 function apache_install {
 	# Check for any updated packages and install apache2
-	aptitude -y install apache2 apache2-doc apache2-utils libapache2-mod-security
+	aptitude -y install apache2 apache2-doc apache2-utils
 }
 
 function apache_configure_settings {
-	# Backup and configure apache2.conf
-	cp /etc/apache2/{apache2.conf,apache2.conf.backup}
-	chmod 700 apache2.conf.backup
-	
+	# Edit the apache2 configuration file
 	sed -i "s/^Timeout.*$/Timeout 30/" /etc/apache2/apache2.conf
 	sed -i "s/^KeepAliveTimeout.*$/KeepAliveTimeout 5/g" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*MaxKeepAliveRequests\)\s*[0-9]*/\1  400/" /etc/apache2/apache2.conf
@@ -630,20 +621,11 @@ function apache_configure_settings {
 	sed -i "s/\(^\s*MaxClients\)\s*[0-9]*/\1           45/" /etc/apache2/apache2.conf
 	sed -i "s/\(^\s*MaxRequestsPerChild\)\s*[0-9]*/\1  5000/" /etc/apache2/apache2.conf
 	
-	# Backup and configure servername.conf
-	cp /etc/apache2/conf.d/{servername.conf,servername.conf.backup}
-	chmod 700 servername.conf.backup
-	sed -i "s/^ServerName.*/ServerName $setting_domain/" /etc/apache2/conf.d/servername.conf
-
-	# Remove Apache server information from headers. 
-	cp /etc/apache2/conf.d/{security,security.backup}
-	chmod 700 security.backup
+	# Apply basic security settings
 	sed -i "s/^ServerTokens.*/ServerTokens Prod/" /etc/apache2/conf.d/security
 	sed -i "s/^ServerSignature.*/ServerSignature Off/" /etc/apache2/conf.d/security
 
 	# Edit Ports.conf
-	cp /etc/apache2/{ports.conf,ports.conf.backup}
-	chmod 700 ports.conf.backup
 	sed -i "s/^NameVirtualHost.*/NameVirtualHost $setting_ip:80/" /etc/apache2/ports.conf
 	
 	# Edit default virtual host
@@ -651,25 +633,20 @@ function apache_configure_settings {
 }
 
 function apache_configure_modules {
-	# Enable apache modules
+	# Enable various modules
 	a2enmod actions
 	a2enmod ssl
 	a2enmod rewrite
 	a2enmod suexec
 	a2enmod include
 		
-	# Disable apache modules
-	a2dismod php4
+	# Disable various modules
 	a2dismod status
 	a2dismod autoindex
 	a2dismod cgi
 	
 	# Disable default site
 	a2dissite 000-default
-}
-
-function apache_restart {
-	service apache2 restart
 }
 
 ########################################
@@ -689,14 +666,17 @@ function php_configure {
 	sed -i 's/^max_execution_time.*$/max_execution_time = 1120/' /etc/php5/apache2/php.ini	
 	sed -i 's/^max_input_time.*$/max_input_time = 1300/' /etc/php5/apache2/php.ini
 	sed -i "s/^display_errors.*$/display_errors = Off/" /etc/php5/apache2/php.ini
-	sed -i "s/^log_errors.*$/log_errors = On/" /etc/php5/apache2/php.ini
+	sed -i "s/^log_errors = Off$/log_errors = On/" /etc/php5/apache2/php.ini
+	sed -i "s/^;error_log = syslog$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini	
+	sed -i "s/^;error_log = php_errors.log$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini
 	sed -i "s/^;error_log.*$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini
 	sed -i "s/^memory_limit.*$/memory_limit = $setting_mysql_memory_limitM/" /etc/php5/apache2/php.ini
-	sed -i 's/^post_max_size.*$/post_max_size = 125M/' /etc/php5/apache2/php.ini	
-	sed -i 's/^upload_max_filesize.*$/upload_max_filesize = 125M/' /etc/php5/apache2/php.ini
-	sed -i 's/^register_globals.*$/register_globals = Off/' /etc/php5/apache2/php.ini
-	sed -i 's/^allow_url_fopen.*$/allow_url_fopen = Off/' /etc/php5/apache2/php.ini
-	sed -i 's/^enable_dl.*$/enable_dl = Off/' /etc/php5/apache2/php.ini
+	sed -i "s/^post_max_size.*$/post_max_size = 125M/" /etc/php5/apache2/php.ini	
+	sed -i "s/^upload_max_filesize.*$/upload_max_filesize = 125M/" /etc/php5/apache2/php.ini
+	sed -i "s/^register_globals.*$/register_globals = Off/" /etc/php5/apache2/php.ini
+	sed -i "s/^allow_url_fopen.*$/allow_url_fopen = Off/" /etc/php5/apache2/php.ini
+	sed -i "s/^enable_dl.*$/enable_dl = Off/" /etc/php5/apache2/php.ini
+	sed -i "s/^;date.timezone*$/date.timezone = $setting_php_zone/" /etc/php5/apache2/php.ini
 }
 
 ########################################
@@ -714,6 +694,7 @@ function ruby_on_rails_install {
 	aptitude -y install rails
 }
 
+
 ########################################
 # 10.5 Apache Tomcat
 ########################################
@@ -727,18 +708,41 @@ function tomcat_install {
 # 10.6 GlassFish
 ########################################
 
-function java_install {
-	# Provide the parameters required for the installation
-	echo "sun-java6-jdk shared/accepted-sun-dlj-v1-1 select true" | /usr/bin/debconf-set-selections
-	echo "sun-java6-jre shared/accepted-sun-dlj-v1-1 select true" | /usr/bin/debconf-set-selections
+function glassfish_install {
+	#Add a new user called glassfish
+	adduser --home /home/glassfish --system --shell /bin/bash $setting_glassfish
 
-	aptitude -y install python-software-properties
-	add-apt-repository ppa:ferramroberto/java	
-	aptitude update
-	aptitude -y install sun-java6-jdk sun-java6-jre
+	#add a new group for glassfish administration
+	groupadd $setting_glassfish_admin
+
+	#add your users that shall be Glassfish adminstrators
+	usermod -a -G $setting_glassfish_admin $setting_admin
+	usermod -a -G $setting_glassfish_admin $setting_glassfish
+
+	# Create a download folder in the glassfish user profile
+	mkdir /home/$setting_glassfish/downloads
+	cd /home/$setting_glassfish/downloads
+	wget http://download.java.net/glassfish/3.1.1/release/glassfish-3.1.1.zip
+	unzip glassfish-3.1.1.zip
+	mv glassfish3 /home/$setting_glassfish/
 	
-	#echo "JAVA_HOME=\"/usr/lib/jvm/java-6-sun\"" > /etc/environment
-	#echo "PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/lib/jvm/java-6-sun/bin" >> /etc/environment
+	# Move back to root home and change permissions of the downloaded files
+	cd ~
+	rm -R /home/glassfish/downloads/
+	chown -R $setting_glassfish /home/$setting_glassfish
+	chgrp -R $setting_glassfish_admin /home/$setting_glassfish
+	chmod -R 750 /home/$setting_glassfish/glassfish3
+}
+
+function glassfish_configure {
+	# Create a script to launch glassfish on startup
+	cat >> /etc/init.d/glassfish <<EOF
+#!/bin/sh
+/home/$setting_glassfish/glassfish3/bin/asadmin start-domain domain1	
+EOF
+
+	# Make the script executable
+	chmod 700 /etc/init.d/glassfish
 }
 
 ################################################################################
@@ -758,22 +762,6 @@ function mysql_install {
 	aptitude -y install mysql-server
 }
 
-function mysql_configure {
-	# Allow for external access to the database
-	#sed -i "s/^#bind-address.*$/bind-address = $setting_ip/" /etc/mysql/my.cnf
-	
-	# Enable the InnoDB engine
-	#sed -i 's/[mysqld]/[mysqld]\ndefault-storage-engine=InnoDB/' /etc/mysql/my.cnf
-	
-	# Secure MySQL
-	mysql_secure_installation
-}
-
-function mysql_restart {
-	# Restart the service
-	service mysql restart	
-}
-
 ########################################
 # 11.2 PostgreSQL
 ########################################
@@ -781,12 +769,6 @@ function mysql_restart {
 function postgresql_install {
 	# Check for any updated packages and install postgresql
 	aptitude -y install postgresql postgresql-contrib
-	
-	# Set the password for the default postgres user
-	passwd postgres $setting_postgres_password
-	
-	# Alter the password for the postgres user within the database
-	psql -d template1 -c "ALTER USER postgres WITH PASSWORD '$setting_postgres_password';"
 }
 
 ################################################################################
@@ -841,7 +823,6 @@ function postgresql_install {
 # Postfix
 ########################################
 
-
 function postfix_install_send_only {
 	# Install postfix
 	echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
@@ -857,8 +838,11 @@ function postfix_install_send_only {
 
 	# Put the domain the mail name
 	cat > /etc/mailname << EOF
-	$setting_domain
+$setting_domain
 EOF
+	
+	# Disable local mail
+	sed -i "s/^mydestination =.*$/mydestination = localhost/" /etc/postfix/main.cf
 	
 	# Ensure postfix will start at boot
 	/usr/sbin/update-rc.d postfix defaults
@@ -1054,10 +1038,36 @@ EOF
 # 22. Other Useful Applications
 ################################################################################
 
-# Place holder
+########################################
+# 22.1 Java
+########################################
+
+function java_install {
+	# Update to reflect the repo containing the java libs
+	aptitude -y install python-software-properties
+	add-apt-repository -y ppa:ferramroberto/java
+	
+	# Provide the parameters required for the installation
+	echo "sun-java6-jdk shared/accepted-sun-dlj-v1-1 select true" | /usr/bin/debconf-set-selections
+	echo "sun-java6-jre shared/accepted-sun-dlj-v1-1 select true" | /usr/bin/debconf-set-selections
+	
+	# Install Java
+	aptitude update
+	aptitude -y install sun-java6-jdk sun-java6-jre
+	
+	# Setup the various Java paths
+	echo "JAVA_HOME=\"/usr/lib/jvm/java-6-sun\"" > /etc/environment
+	echo "PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/lib/jvm/java-6-sun/bin\"" >> /etc/environment
+}
 
 ################################################################################
 # A1. Misc
 ################################################################################
 
-# Place holder
+function exit_message {
+	clear
+	echo "###############################################################"
+	echo "Configuration complete..."
+	echo "Remember to run mysql_secure_installation and then reboot"
+	echo "###############################################################"
+}
