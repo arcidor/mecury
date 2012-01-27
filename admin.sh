@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source setting.sh
+
 ################################################################################
 # 2. System Info
 ################################################################################
@@ -17,11 +19,6 @@ function system_memory_check {
 # Displays how much memory current processes are using (sorted largest-smallest)
 function system_current_usage {
 	ps -eo pmem,pcpu,rss,vsize,args | sort -k 1 -r
-}
-
-# Displays current IO activity
-function system_io_activity {
-	iostat -d -x 2 5
 }
 
 # Reports information about processes, memory, paging, block IO, traps, and cpu activity.
@@ -74,18 +71,18 @@ function pm_uninstall_deb {
 
 # $1=package name
 function pm_install {
-	apt-get update
-	apt-get upgrade
-	apt-get install $1
+	aptitude update
+	aptitude upgrade
+	aptitude install $1
 }
 
 # $1=package name
 function pm_uninstall {
-	apt-get remove $1
+	aptitude remove $1
 }
 
 function pm_help {
-	apt-get help
+	aptitude help
 }
 
 function pm_output_logs {
@@ -136,27 +133,25 @@ function net_list_network {
 
 # $1=username, $2=real_name,$3=password
 function sum_user_add {
+	# Create the user
+	sudo adduser --shell /bin/bash --disabled-password --gecos "$2,,," $1
 
-	username = `lower $1`
-	full_name = $2
-	password = $3
+	# Update the shadow file to prevent pam authentication errors
+	sudo pwconv
 
-	# Create the user and change the account password
-	sudo adduser --shell /bin/bash --disabled-password --gecos "$full_name,,," $username
-	echo "$username:$password" | chpasswd
-
-	# Set the password expiry to 90 days and the warning to 14 days
-	chage -M 90 -W 14 $username
-
+	# Change the password
+	sudo echo "$1:$3" | chpasswd
 }
 
 # $1=username
 function sum_user_delete {
-	sudo mkdir /home/.archived_users/
-	sudo mv /home/$1 
-	sudo chown -R root:root /home/archived_users/$1/
+	# Move the users file to an archive directory
+	sudo mkdir -p /home/.archived_users/
+	sudo mkdir -p /home/.archived_users/$1
+	sudo mv /home/$1 /home/.archived_users/$1
 	
-	sudo /home/$1/rm ssh/authorized_keys
+	# Change ownership of the files
+	sudo chown -R root:root /home/.archived_users/$1/
 }
 
 # $1=username
@@ -184,19 +179,12 @@ function user_account_status {
 }
 
 function password_check_empty {
-	awk -F: '($2 == "") {print}' /etc/shadow
+	sudo awk -F: '($2 == "") {print}' /etc/shadow
 }
 
 function find_unowned_files {
-	find / -xdev \( -nouser -o -nogroup \) -print
+	sudo find / -xdev \( -nouser -o -nogroup \) -print
 }
-
-# Displays information about the users currently on the machine, and their processes.
-# $1 = username
-function user_current_activity {
-	w $1
-}
-
 
 ################################################################################
 # 9. Monitoring
@@ -213,12 +201,11 @@ function user_current_activity {
 ########################################
 
 function apache_create_domain {
-
 	# Create the virtual host file
-	touch /etc/apache2/sites-available/$1
+	touch $1
 
 	# Output the template to the virtual host file
-	cat > /etc/apache2/sites-available/$1 <<EOF
+	sudo cat > $1 <<EOF
 <VirtualHost $setting_ip:80>
 
 	ServerAdmin admin@$1
@@ -245,85 +232,70 @@ function apache_create_domain {
 
 </VirtualHost>
 EOF
-
-}
-
-function apache_domain_remove {
 	
-	#First disable domain and reload webserver
-	echo "Disabling $DOMAIN_ENABLED_PATH"
-	rm -rf $DOMAIN_ENABLED_PATH
-	reload_webserver
-	#Then delete all files and config files
-	echo "Removing /etc/awstats/awstats.$DOMAIN.conf"
-	rm -rf /etc/awstats/awstats.$DOMAIN.conf
-	echo "Removing $DOMAIN_PATH"
-	rm -rf $DOMAIN_PATH
-	echo "Removing $DOMAIN_CONFIG_PATH"
-	rm -rf $DOMAIN_CONFIG_PATH
-	echo "Removing /etc/logrotate.d/$LOGROTATE_FILE"
-	rm -rf /etc/logrotate.d/$LOGROTATE_FILE
+	# Move the file to the correct position and change access
+	sudo mv $1 /etc/apache2/sites-available/$1
+	sudo chown root:root /etc/apache2/sites-available/$1
 
-}
+	# Create the required directory structure
+	sudo mkdir -p /srv/www/$1/private
+	sudo mkdir -p /srv/www/$1/backup
+	sudo mkdir -p /srv/www/$1/logs
+	sudo touch /srv/www/$1/logs/access.log
+	sudo touch /srv/www/$1/logs/error.log
+	sudo mkdir -p /srv/www/$1/public
+	sudo mkdir -p /srv/www/$1/public/css
+	sudo mkdir -p /srv/www/$1/public/img
+	sudo mkdir -p /srv/www/$1/public/js
+	sudo mkdir -p /srv/www/$1/public/temp
+	
+	# Create a default welcome page
+	touch index.html
+	sudo cat > index.html <<EOF
+Welcome to the default placeholder!
+Overwrite or remove index.html when uploading your site. 
+EOF
+	
+	# Move the file to the correct position and change access
+	sudo mv index.html /srv/www/$1/public/index.html
+	sudo chown root:root /srv/www/$1/public/index.html
+	
+	# Create a robot.txt file
+	touch robots.txt
+	sudo cat > robots.txt <<EOF
+User-agent: *
+Disallow: /public/temp/
+Sitemap: http://www.$1/sitemap.xml
+EOF
 
-function apache_enable_domain {
+	# Move the file to the correct position and change access
+	sudo mv robots.txt /srv/www/$1/public/robots.txt
+	sudo chown root:root /srv/www/$1/public/robots.txt
+
+	# Check permissions are correct
+	sudo chown -R $setting_domain_owner:$setting_domain_owner /srv/www/
+	
+	# Enable the site
+	sudo a2ensite $1
 
 	# Enable the domain and restart Apache
 	sudo a2ensite $1
 	sudo /etc/init.d/apache2 restart
-
 }
 
 function apache_disable_domain {
-	
 	# Disable the domain and restart Apache
-	sudo a2dissite mynewsite
+	sudo a2dissite $1
 	sudo /etc/init.d/apache2 restart
-	
 }
 
 function apache_ssl_enable {
-	
 	sudo a2enmod ssl
 	
 	sed -i "s/# SSLEngine on/SSLEngine on/" /etc/apache2/sites-available/$1
 	sed -i "s/# SSLOptions +StrictRequire/ SSLOptions +StrictRequire/" /etc/apache2/sites-available/$1
 	sed -i "s/# SSLCertificateFile \/etc\/ssl\/certs\/server.crt/ SSLCertificateFile \/etc\/ssl\/certs\/server.crt/" /etc/apache2/sites-available/$1
 	sed -i "s/# SSLCertificateKeyFile \/etc\/ssl\/private\/server.key/SSLCertificateKeyFile \/etc\/ssl\/private\/server.key/" /etc/apache2/sites-available/$1
-
-}
-
-function server_apache_configure_domain {
-
-	# Create the required directory structure
-	mkdir -p /srv/www/$domain/private
-	mkdir -p /srv/www/$domain/backup
-	mkdir -p /srv/www/$domain/log
-	mkdir -p /srv/www/$domain/public
-	mkdir -p /srv/www/$domain/public/css
-	mkdir -p /srv/www/$domain/public/img
-	mkdir -p /srv/www/$domain/public/js
-	mkdir -p /srv/www/$domain/public/temp
-	
-	# Create a default welcome page
-	cat > /srv/www/$domain/public/index.html <<EOF
-Welcome to the default placeholder!
-Overwrite or remove index.html when uploading your site. 
-EOF
-	
-	# Create a robot.txt file
-	cat > /srv/www/$domain/public/robots.txt <<EOF
-User-agent: *
-Disallow: /public/temp/
-Sitemap: http://www.$domain/sitemap.xml
-EOF
-
-	# Check permissions are correct
-	chown -R $setting_domain_owner:$setting_domain_owner /srv/www/
-	
-	# Enable the site
-	a2ensite $domain > $directory_logs/server_apache_settingure_domain.log
-	
 }
 
 function server_apache_reload {
@@ -432,11 +404,6 @@ function postgres_grant_privileges {
 # 22. Other Useful Applications
 ################################################################################
 
-# Place holder
-
-
-
-
 # Gives a user access to a Chrooted directory
 # $1 = username
 function user_enable_strict_sftp {	
@@ -454,12 +421,3 @@ function user_set_passowrd_expiry {
 function find_world_writable_files {
 	find /dir -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -print
 }
-
-
-
-
-
-
-
-
-
