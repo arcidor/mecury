@@ -16,6 +16,7 @@ installation_upgrade_release
 installation_locale_update
 installation_timezone_update
 installation_motd_clear
+installation_admin_skeleton_files
 installation_admin_group_create
 installation_admin_user_create
 
