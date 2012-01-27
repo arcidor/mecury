@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source setting.sh
+source .setting.sh
 
 ################################################################################
 # 2. System Info
@@ -200,6 +200,7 @@ function find_unowned_files {
 # 10.1 Apache Web Server
 ########################################
 
+# $1 = site name (example.com)
 function apache_create_domain {
 	# Create the virtual host file
 	touch $1
