@@ -8,9 +8,9 @@ A shell script, used to install and configure various settings and applications 
 
 The script has three sections:
 
-*	Settings: used to customise the installation/administration process
-*	Core functions: used to install various parts of the server
-*	Admin function: used post-installation for maintenance
+> 	*	Settings: used to customise the installation/administration process
+>	*	Core functions: used to install various parts of the server
+>	*	Admin function: used post-installation for maintenance
 	
 File list
 ----------------------------------------------------------------------------------------------------
