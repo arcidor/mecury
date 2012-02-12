@@ -95,41 +95,28 @@ Licensing
 Additional Resources
 ----------------------------------------------------------------------------------------------------
 
-	*	Ubuntu server guide
-		https://help.ubuntu.com/11.04/serverguide/C/index.html
+	*	[Ubuntu server guide](https://help.ubuntu.com/11.04/serverguide/C/index.html "Title")
 		
-	*	DebianAdmin
-		http://www.debianadmin.com/
-		
-	*	Securing IP tables
-		http://www.sitepoint.com/secure-server-iptables/
+	*	[DebianAdmin](http://www.debianadmin.com/)
 	
-	*	Low end VPS server
-		http://madspace2.rajeshprakash.com/lowendvpsconfig.htm
-		
-	*	Various linux scripts
-		http://bash.cyberciti.biz/
+	*	[Securing IP tables](http://www.sitepoint.com/secure-server-iptables/)
 	
-	*	Slicehost articles and tutorials
-		http://articles.slicehost.com/
-		
-	*	Server tutorials
-		http://beginlinux.com/
-		
-	*	Server fault: tips for securing a LAMP server
-		http://serverfault.com/questions/212269/tips-for-securing-a-lamp-server
-		
-	*	NSA security guidance
-		http://www.nsa.gov/ia/guidance/security_configuration_guides/operating_systems.shtml
-		
-	*	The 60 Minute Network Security Guide
-		http://www.nsa.gov/ia/_files/support/I33-011R-2006.pdf
-		
-	*	Guide to the Secure Conﬁguration of Red Hat Enterprise Linux 5
-		http://www.nsa.gov/ia/_files/os/redhat/rhel5-guide-i731.pdf
-		
-	*	Slackware hardening
-		http://transamrit.net/docs/sysHardening/system-hardening-10.2.txt
-		
-	*	What is the easiest way to resolve apt-get BADSIG GPG errors? (Ubuntu Forums)
-		http://askubuntu.com/questions/1877/what-is-the-easiest-way-to-resolve-apt-get-badsig-gpg-errors
+	*	[Low end VPS server](http://madspace2.rajeshprakash.com/lowendvpsconfig.htm)
+
+	*	[Various linux scripts](http://bash.cyberciti.biz/)
+
+	*	[Slicehost articles and tutorials](http://articles.slicehost.com/)
+
+	*	[Server tutorials](http://beginlinux.com/)
+	
+	*	[Server fault: tips for securing a LAMP server](http://serverfault.com/questions/212269/tips-for-securing-a-lamp-server)
+	
+	*	[NSA security guidance](http://www.nsa.gov/ia/guidance/security_configuration_guides/operating_systems.shtml)		
+	
+	*	[The 60 Minute Network Security Guide](http://www.nsa.gov/ia/_files/support/I33-011R-2006.pdf)		
+	
+	*	[Guide to the Secure Conﬁguration of Red Hat Enterprise Linux 5](http://www.nsa.gov/ia/_files/os/redhat/rhel5-guide-i731.pdf)
+	
+	*	[Slackware hardening](http://transamrit.net/docs/sysHardening/system-hardening-10.2.txt)		
+	
+	*	[What is the easiest way to resolve apt-get BADSIG GPG errors? (Ubuntu Forums)](http://askubuntu.com/questions/1877/what-is-the-easiest-way-to-resolve-apt-get-badsig-gpg-errors)		
