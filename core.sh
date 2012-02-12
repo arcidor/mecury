@@ -422,9 +422,6 @@ function firewall_configure {
 	# Allow ping
 	# /sbin/iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
 
-	# log iptables denied calls
-	/sbin/iptables -A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables: " --log-level 7
-
 	# Reject all other inbound - default deny unless explicitly allowed policy
 	/sbin/iptables -A INPUT -j REJECT
 	/sbin/iptables -A FORWARD -j REJECT
