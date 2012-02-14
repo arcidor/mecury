@@ -150,8 +150,13 @@ function package_management_aptitude_install {
 	# Install aptitude 
 	apt-get -y install aptitude
 
-	# Update aptitude and upgrade the system
+	# Update aptitude
 	aptitude -y update
+}
+
+function package_management_aptitude_update {
+	aptitude -y update
+	aptitude -y upgrade
 }
 
 function package_management_essentials_install {
