@@ -31,7 +31,7 @@
 function installation_disable_environment {
 	# Prevent environment sharing as this can cause some issues with locales
 	sed -i "s/^AcceptEnv.*/# AcceptEnv LANG LC_*/" /etc/ssh/sshd_config
-	/etc/init.d/ssh restart
+	service ssh restart
 }
 
 function installation_upgrade_release {
