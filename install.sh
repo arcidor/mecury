@@ -132,4 +132,5 @@ backup_install
 # Exit
 ################################################################################
 
+package_management_aptitude_update
 exit_message
