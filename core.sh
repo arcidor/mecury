@@ -976,7 +976,7 @@ function backup_install {
 EOF
 
 	# Apply the correct permissions to the file
-	chmod 700 /etc/cron.daily/backup.sh
+	chmod 755 /etc/cron.daily/backup.sh
 }
 
 ########################################
