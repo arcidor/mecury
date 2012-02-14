@@ -422,3 +422,7 @@ function user_set_passowrd_expiry {
 function find_world_writable_files {
 	find /dir -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -print
 }
+
+function list_mb {
+	du -sh *|egrep '^[0-9]+(,[0-9]+)*M.*$'
+}
