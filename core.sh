@@ -969,12 +969,12 @@ function backup_install {
 	# Create archive filename.
 	day=$(date +%A)
 	hostname=$(hostname -s)
-	archive_file="$hostname-$day.tgz"
+	archive_file="\$hostname-\$day.tgz"
 
 	# Backup the files using tar.
-	tar -cf "/mnt/backup/$archive_file" /home /var/spool/mail /etc /root /boot /opt
-	
-	echo $archive_file
+	tar -cf "/mnt/backup/\$archive_file" /home /var/spool/mail /etc /root /boot /opt
+
+	echo \$archive_file
 ) | mail -s 'Backup Output:' $setting_admin_email
 EOF
 
