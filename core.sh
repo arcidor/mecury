@@ -657,7 +657,7 @@ function apache_configure_modules {
 
 function php_install {
 	# Check for any updated packages and install php
-	aptitude -y install php5 php5-json php5-cli php5-mysql php5-dev php5-curl php5-gd php5-imagick php5-mcrypt php5-memcache php5-mhash php5-pspell php5-snmp php5-sqlite php5-xmlrpc php5-xsl libapache2-mod-php5 php5-gd php5-ldap php5-odbc php5-pgsql php5-cli php5-suhosin libapache2-mod-php5 php5-common
+	aptitude -y install php5 php5-json php5-cli php5-mysql php5-dev php5-curl php5-gd php5-imagick php5-mcrypt php5-memcache php5-mhash php5-pspell php5-snmp php5-xmlrpc php5-xsl libapache2-mod-php5 php5-gd php5-ldap php5-odbc php5-pgsql php5-cli php5-suhosin libapache2-mod-php5 php5-common
 }
 
 function php_configure {
