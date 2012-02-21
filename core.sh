@@ -64,15 +64,15 @@ function installation_motd_clear {
 
 function installation_admin_skeleton_files {
 	# Move the files to the skeleton directory
-	mv setting.sh /etc/skel/.setting.sh
-	mv admin.sh /etc/skel/.admin.sh
+	cp setting.sh /etc/skel/.setting.sh
+	cp admin.sh /etc/skel/.admin.sh
 	
 	# Change the permissions
 	chmod -R 777 /etc/skel
 	
 	# Make sure the files are sourced on login
-	echo "source /etc/skel/.setting.sh" >> /etc/profile
-	echo "source /etc/skel/.admin.sh" >> /etc/profile
+	echo "source ~/.setting.sh" >> /etc/skel/.profile
+	echo "source ~/.admin.sh" >> /etc/skel/.profile
 }
 
 function installation_admin_group_create {
@@ -672,7 +672,7 @@ function php_configure {
 	sed -i "s/^;error_log = syslog$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini	
 	sed -i "s/^;error_log = php_errors.log$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini
 	sed -i "s/^;error_log.*$/error_log = \/var\/log\/php.log/" /etc/php5/apache2/php.ini
-	sed -i "s/^memory_limit.*$/memory_limit = $setting_mysql_memory_limitM/" /etc/php5/apache2/php.ini
+	sed -i "s/^memory_limit.*$/memory_limit = $setting_mysql_memory_limit\M/" /etc/php5/apache2/php.ini
 	sed -i "s/^post_max_size.*$/post_max_size = 125M/" /etc/php5/apache2/php.ini	
 	sed -i "s/^upload_max_filesize.*$/upload_max_filesize = 125M/" /etc/php5/apache2/php.ini
 	sed -i "s/^register_globals.*$/register_globals = Off/" /etc/php5/apache2/php.ini
